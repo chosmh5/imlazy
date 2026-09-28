@@ -1,0 +1,1 @@
+window.RP_SESSION={"id":"S-9c8500d70fee","messages":[{"id":"RP-0142667","time":"2026-05-02T01:09:00+09:00","room":"RP","name":"사이먼","profile":"올리브","identity":"reviewed","type":"dialogue","body":" \"엣츄!\"\n\n 감기 몸살에 걸렸습니다. 뼈마디가 시렸는데 불을 쬐니 훨 낫네요.","characters":["P-3ea4affc20fd"]}]};

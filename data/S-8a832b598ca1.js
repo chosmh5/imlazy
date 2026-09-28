@@ -1,0 +1,1 @@
+window.RP_SESSION={"id":"S-8a832b598ca1","messages":[{"id":"RP-0119426","time":"2026-04-19T18:58:00+09:00","room":"RP","name":"션 / 서술","profile":"델타인","identity":"reviewed","type":"dialogue","body":"션은 펜대 대신 회초리를 들고 아리차를 쫓아다니는 중.","characters":["P-3bbc4a823df9"]}]};

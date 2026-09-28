@@ -8,6 +8,8 @@ const time=v=>(v||'').slice(0,16).replace('T',' ');
 const catalog=window.RP_CATALOG;
 if(!catalog)throw new Error('목록 파일을 불러오지 못했습니다.');
 const people=new Map(catalog.characters.map(c=>[c.id,c]));
+const characterOptions=id=>(people.has(id)?[id]:catalog.characterRedirects?.[id]||[]).map(key=>people.get(key)).filter(Boolean);
+const selectedCharacter=(id,scope)=>{const options=characterOptions(id).filter(c=>!scope||scope.includes(c.id));return options.length===1?options[0]:null;};
 const sessions=new Map(catalog.sessions.map(s=>[s.id,s]));
 const charLink=id=>`character.html?id=${encodeURIComponent(id)}`;
 const readLink=(id,character='')=>`read.html?id=${encodeURIComponent(id)}${character?'&character='+encodeURIComponent(character):''}`;
@@ -55,7 +57,7 @@ function setupStories(base,character=''){
 if(pageType==='sessions'){
   const t=catalog.totals;
   $('overview').innerHTML=stats([[number(catalog.sessions.length),'세션·대화'],[number(catalog.characters.length),'캐릭터'],[number(catalog.sessions.filter(s=>s.story==='prepared').length),'준비된 세션'],[number(catalog.sessions.filter(s=>s.story==='free').length),'자유 RP']]);
-  $('progress').textContent=`원본 전체 처리 ${(100*t.processed/t.messages).toFixed(2)}% · 확인된 ${number(t.extracted)}개 대화를 수록했습니다. 아직 정리 중이며 새 기록이 추가될 수 있습니다.`;
+  $('progress').textContent=`원본 전체 처리 ${(100*t.processed/t.messages).toFixed(2)}% · 확인된 ${number(t.extracted)}개 대화를 수록했습니다. ${t.unprocessed===0?'현재 원본 4개 파일의 분류를 마쳤습니다. 근거가 부족한 인물·유형은 미확정으로 표시합니다.':'아직 정리 중이며 새 기록이 추가될 수 있습니다.'}`;
   setupStories(catalog.sessions);
 }else if(pageType==='characters'){
   let page=Math.max(0,(Number(params.get('page'))||1)-1);const size=48;
@@ -73,9 +75,10 @@ if(pageType==='sessions'){
   for(const id of ['search','sort'])$(id).oninput=()=>{page=0;render();};
   $('reset').onclick=()=>{$('search').value='';$('sort').value='name';page=0;render();};render();
 }else if(pageType==='character'){
-  const c=people.get(params.get('id'));
-  if(!c){$('title').textContent='캐릭터를 찾지 못했습니다';$('aliases').textContent='캐릭터 일람에서 다시 선택해 주세요.';$('characterContent').hidden=true;}
+  const options=characterOptions(params.get('id')),c=options.length===1?options[0]:null;
+  if(!c){$('title').textContent=options.length?'같은 이름의 캐릭터':'캐릭터를 찾지 못했습니다';$('aliases').innerHTML=options.length?`기록에 등장한 인물을 선택해 주세요.<div class="chips">${chips(options.map(c=>c.id))}</div>`:'캐릭터 일람에서 다시 선택해 주세요.';$('characterContent').hidden=true;}
   else{
+    if(params.get('id')!==c.id)updateURL({id:c.id});
     document.title=`${c.name} · 어설픈 용맹`;$('title').textContent=c.name;$('crumb').textContent=c.name;
     $('aliases').textContent=c.aliases.length?'다른 표기: '+c.aliases.join(' · '):'함께한 이야기의 기록';
     const own=c.sessionIds.map(id=>sessions.get(id));
@@ -89,11 +92,11 @@ if(pageType==='sessions'){
     document.title=`${s.title} · 어설픈 용맹`;$('title').textContent=s.title;
     $('period').textContent=`${day(s.start)} ~ ${day(s.end)} · ${s.rooms.join(' / ')} · ${s.storyLabel}`;
     $('synopsis').textContent=s.summary;$('classification').textContent=textEvidence(s.classification);
-    const origin=people.get(params.get('character'));
+    const origin=selectedCharacter(params.get('character'),s.characters);
     if(origin&&s.characters.includes(origin.id))$('breadcrumb').innerHTML=`<a href="characters.html">캐릭터 일람</a> / <a href="${charLink(origin.id)}">${esc(origin.name)}의 참가 기록</a> / 이야기 읽기`;
     $('participants').innerHTML=chips(s.characters,origin?.id)||'<p class="muted">인물 연결 확인 중</p>';
     $('focus').insertAdjacentHTML('beforeend',s.characters.map(id=>`<option value="${id}">${esc(people.get(id).name)}</option>`).join(''));
-    const desiredFocus=params.get('focus')??origin?.id??'';if(s.characters.includes(desiredFocus))$('focus').value=desiredFocus;
+    const requestedFocus=params.get('focus')??origin?.id??'';const desiredFocus=selectedCharacter(requestedFocus,s.characters)?.id||requestedFocus;if(s.characters.includes(desiredFocus))$('focus').value=desiredFocus;
     $('parts').innerHTML=s.parts.map(p=>`<li><a href="#${esc(p.anchor)}">${esc(p.title)}</a><small>${esc(time(p.start))} · ${esc(p.room)}</small></li>`).join('');
     $('parts').addEventListener('click',event=>{if(event.target.closest('a')){$('bodySearch').value='';$('onlyCharacter').checked=false;$('showBots').checked=true;}});
     $('relatedSection').hidden=!s.related.length;$('related').innerHTML=s.related.map(id=>storyCard(sessions.get(id))).join('');
