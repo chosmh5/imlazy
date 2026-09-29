@@ -110,7 +110,7 @@ if(pageType==='sessions'){
     $('parts').innerHTML=s.parts.map(p=>`<li><a href="#${esc(p.anchor)}">${esc(p.title)}</a><small>${esc(time(p.start))} · ${esc(p.room)}</small></li>`).join('');
     $('parts').addEventListener('click',event=>{if(event.target.closest('a')){$('bodySearch').value='';$('onlyCharacter').checked=false;$('showBots').checked=true;}});
     $('relatedSection').hidden=!s.related.length;$('related').innerHTML=s.related.map(id=>storyCard(sessions.get(id))).join('');
-    const script=document.createElement('script');script.src=`data/${s.id}.js`;
+    const script=document.createElement('script');script.src=`data/${s.id}.js${s.dataVersion?'?v='+encodeURIComponent(s.dataVersion):''}`;
     script.onload=()=>{if(window.RP_SESSION?.id===s.id)renderReader(s,window.RP_SESSION);else $('state').textContent='대화 파일을 확인할 수 없습니다.';};
     script.onerror=()=>{$('state').textContent='대화를 불러오지 못했습니다. 잠시 뒤 다시 열어 주세요.';};document.head.append(script);
   }
