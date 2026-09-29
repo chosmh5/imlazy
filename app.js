@@ -36,11 +36,12 @@ const queryMatches=(text,q)=>norm(q).split(' ').filter(Boolean).every(word=>text
 
 function setupStories(base,character=''){
   let page=Math.max(0,(Number(params.get('page'))||1)-1);const size=30;
-  const fields=['search','story','room','from','to','sort'].filter(id=>$(id));
-  const defaults={search:'',story:'',room:'',from:'',to:'',sort:'oldest'};
+  const fields=['search','story','room','with','from','to','sort'].filter(id=>$(id));
+  const defaults={search:'',story:'',room:'',with:'',from:'',to:'',sort:'oldest'};
   for(const id of fields){const value=params.get(id==='search'?'q':id);if(value!==null)$(id).value=value;if($(id).value==='')$(id).value=defaults[id];}
   const render=()=>{
     let found=base.filter(s=>(!$('story').value||s.story===$('story').value)&&(!$('room')?.value||s.rooms.includes($('room').value))&&(!$('from').value||day(s.end)>=$('from').value)&&(!$('to').value||day(s.start)<=$('to').value)&&queryMatches(searchable.get(s.id),$('search').value));
+    if($('with')?.value)found=found.filter(s=>s.characters.includes($('with').value));
     if($('sort').value==='newest')found=[...found].reverse();
     const count=Math.max(1,Math.ceil(found.length/size));page=Math.min(page,count-1);
     $('resultCount').textContent=`${number(found.length)}개 이야기${character?' · 이 인물의 참가·등장 기록':''}`;
@@ -62,18 +63,23 @@ if(pageType==='sessions'){
 }else if(pageType==='characters'){
   let page=Math.max(0,(Number(params.get('page'))||1)-1);const size=48;
   $('search').value=params.get('q')||'';$('sort').value=params.get('sort')||'name';
+  $('sheet').value=params.get('sheet')||'';
+  if(!$('sheet').value)$('sheet').value='';
+  const sheets=window.CharacterSheets;
+  const sheetCount=sheets?.readyCount||0;
+  $('sheetProgress').textContent=`인물 소개 ${number(sheetCount)} / ${number(catalog.characters.length)}명 수록 (${(100*sheetCount/catalog.characters.length).toFixed(1)}%) · 나머지 소개는 업데이트 중입니다. 모든 인물의 참가 기록은 열람할 수 있습니다.`;
   const render=()=>{
-    const found=catalog.characters.filter(c=>queryMatches(norm([c.name,...c.aliases].join(' ')),$('search').value));
+    const found=catalog.characters.filter(c=>(!$('sheet').value||(sheets?.status(c)||'pending')===$('sheet').value)&&queryMatches(norm([c.name,...c.aliases,sheets?.searchText(c)||''].join(' ')),$('search').value));
     if($('sort').value==='count')found.sort((a,b)=>b.sessionIds.length-a.sessionIds.length||a.name.localeCompare(b.name,'ko'));
     if($('sort').value==='recent')found.sort((a,b)=>b.last.localeCompare(a.last));
     const count=Math.max(1,Math.ceil(found.length/size));page=Math.min(page,count-1);
     $('resultCount').textContent=`${number(found.length)}명의 기록`;
-    $('results').innerHTML=found.slice(page*size,(page+1)*size).map(c=>`<a class="character-card" href="${charLink(c.id)}"><h2>${esc(c.name)}</h2><p>${esc(c.aliases.join(' · ')||'이 인물의 이야기를 만나보세요.')}</p><strong>${number(c.sessionIds.length)}개 이야기</strong><p>${esc(day(c.first))} ~ ${esc(day(c.last))}</p></a>`).join('')||'<p class="empty">해당하는 캐릭터가 없습니다.</p>';
-    updateURL({q:$('search').value,sort:$('sort').value==='name'?'':$('sort').value,page:page?String(page+1):''});
+    $('results').innerHTML=found.slice(page*size,(page+1)*size).map(c=>`<a class="character-card" href="${charLink(c.id)}"><h2>${esc(c.name)}</h2>${sheets?.card(c)||''}<p>${esc(c.aliases.join(' · ')||'')}</p><strong>${number(c.sessionIds.length)}개 이야기</strong><p>${esc(day(c.first))} ~ ${esc(day(c.last))}</p><span class="card-action">인물 시트와 참가 기록 →</span></a>`).join('')||'<p class="empty">해당하는 캐릭터가 없습니다.</p>';
+    updateURL({q:$('search').value,sheet:$('sheet').value,sort:$('sort').value==='name'?'':$('sort').value,page:page?String(page+1):''});
     pager(page,count,n=>{page=n;render();$('resultCount').scrollIntoView();});
   };
-  for(const id of ['search','sort'])$(id).oninput=()=>{page=0;render();};
-  $('reset').onclick=()=>{$('search').value='';$('sort').value='name';page=0;render();};render();
+  for(const id of ['search','sort','sheet'])$(id).oninput=()=>{page=0;render();};
+  $('reset').onclick=()=>{$('search').value='';$('sort').value='name';$('sheet').value='';page=0;render();};render();
 }else if(pageType==='character'){
   const options=characterOptions(params.get('id')),c=options.length===1?options[0]:null;
   if(!c){$('title').textContent=options.length?'같은 이름의 캐릭터':'캐릭터를 찾지 못했습니다';$('aliases').innerHTML=options.length?`기록에 등장한 인물을 선택해 주세요.<div class="chips">${chips(options.map(c=>c.id))}</div>`:'캐릭터 일람에서 다시 선택해 주세요.';$('characterContent').hidden=true;}
@@ -82,6 +88,10 @@ if(pageType==='sessions'){
     document.title=`${c.name} · 어설픈 용맹`;$('title').textContent=c.name;$('crumb').textContent=c.name;
     $('aliases').textContent=c.aliases.length?'다른 표기: '+c.aliases.join(' · '):'함께한 이야기의 기록';
     const own=c.sessionIds.map(id=>sessions.get(id));
+    $('characterNav').hidden=false;
+    window.CharacterSheets?.render(c);
+    const companions=[...new Set(own.flatMap(s=>s.characters))].filter(id=>id!==c.id).map(id=>people.get(id)).filter(Boolean).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+    $('with').insertAdjacentHTML('beforeend',companions.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join(''));
     $('overview').innerHTML=stats([[number(own.length),'참가·등장 기록'],[number(own.filter(s=>s.story==='prepared').length),'준비된 세션'],[number(own.filter(s=>s.story==='free').length),'자유 RP'],[day(c.first),'첫 수록 날짜']]);
     setupStories(own,c.id);
   }
