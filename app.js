@@ -19,6 +19,7 @@ const chips=(ids,selected='')=>ids.filter(id=>people.has(id)).map(id=>`<a class=
 const params=new URLSearchParams(location.search);
 const pageType=document.body.dataset.page;
 const textEvidence=v=>typeof v==='string'?v:Array.isArray(v)?v.map(textEvidence).join('\n'):v&&typeof v==='object'?v.text||JSON.stringify(v):'';
+const initialPage=()=>{const n=Number(params.get('page'));return Number.isSafeInteger(n)&&n>0?n-1:0;};
 
 function updateURL(values){
   const url=new URL(location.href);
@@ -26,8 +27,17 @@ function updateURL(values){
   try{history.replaceState(null,'',url);}catch{}
 }
 function pager(page,total,onChange){
-  $('pagination').innerHTML=`<button id="prevPage" type="button" ${page===0?'disabled':''}>이전</button><span>${page+1} / ${total}</span><button id="nextPage" type="button" ${page>=total-1?'disabled':''}>다음</button>`;
-  $('prevPage').onclick=()=>onChange(page-1);$('nextPage').onclick=()=>onChange(page+1);
+  const pages=[...new Set([0,page-1,page,page+1,total-1])].filter(n=>n>=0&&n<total).sort((a,b)=>a-b);
+  for(const host of [$('paginationTop'),$('pagination')].filter(Boolean)){
+    const suffix=host.id==='paginationTop'?'Top':'';
+    const button=(label,n,id,disabled)=>`<button type="button" data-page="${n}"${id?` id="${id}${suffix}"`:''}${disabled?' disabled':''}>${label}</button>`;
+    host.innerHTML=`<div class="pager-controls">${button('처음',0,'firstPage',page===0)}${button('이전',page-1,'prevPage',page===0)}<span class="page-position">${number(page+1)} / ${number(total)}</span>${button('다음',page+1,'nextPage',page>=total-1)}${button('끝',total-1,'lastPage',page>=total-1)}</div>
+      <div class="page-numbers">${pages.map((n,i)=>`${i&&n>pages[i-1]+1?'<span class="page-gap" aria-hidden="true">…</span>':''}<button type="button" data-page="${n}" aria-label="${number(n+1)}페이지"${n===page?' aria-current="page"':''}>${number(n+1)}</button>`).join('')}</div>
+      <form class="page-jump"><label for="pageNumber${suffix}">페이지 이동</label><input id="pageNumber${suffix}" name="page" type="number" inputmode="numeric" min="1" max="${total}" step="1" value="${page+1}" required aria-label="이동할 페이지 (1~${total})"><button type="submit">이동</button></form>`;
+    const change=n=>{if(Number.isSafeInteger(n)&&n>=0&&n<total)onChange(n);};
+    host.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>change(Number(b.dataset.page)));
+    host.querySelector('form').onsubmit=event=>{event.preventDefault();const input=host.querySelector('input');if(input.reportValidity())change(input.valueAsNumber-1);};
+  }
 }
 function stats(items){return items.map(([value,label])=>`<div class="stat"><strong>${esc(value)}</strong><span>${esc(label)}</span></div>`).join('');}
 function storyCard(s,character=''){
@@ -37,7 +47,7 @@ const searchable=new Map(catalog.sessions.map(s=>[s.id,norm([s.title,s.summary,.
 const queryMatches=(text,q)=>norm(q).split(' ').filter(Boolean).every(word=>text.includes(word));
 
 function setupStories(base,character=''){
-  let page=Math.max(0,(Number(params.get('page'))||1)-1);const size=30;
+  let page=initialPage();const size=30;
   const fields=['search','story','room','with','from','to','sort'].filter(id=>$(id));
   const defaults={search:'',story:'',room:'',with:'',from:'',to:'',sort:'oldest'};
   for(const id of fields){const value=params.get(id==='search'?'q':id);if(value!==null)$(id).value=value;if($(id).value==='')$(id).value=defaults[id];}
@@ -63,7 +73,7 @@ if(pageType==='sessions'){
   $('progress').textContent=`원본 전체 처리 ${(100*t.processed/t.messages).toFixed(2)}% · 확인된 ${number(t.extracted)}개 대화를 수록했습니다. ${t.unprocessed===0?'현재 원본 4개 파일의 분류를 마쳤습니다. 근거가 부족한 인물·유형은 미확정으로 표시합니다.':'아직 정리 중이며 새 기록이 추가될 수 있습니다.'}`;
   setupStories(catalog.sessions);
 }else if(pageType==='characters'){
-  let page=Math.max(0,(Number(params.get('page'))||1)-1);const size=48;
+  let page=initialPage();const size=48;
   $('search').value=params.get('q')||'';$('sort').value=params.get('sort')||'name';
   $('sheet').value=params.get('sheet')||'';
   $('owner').insertAdjacentHTML('beforeend',[...owners.values()].sort((a,b)=>a.label.localeCompare(b.label,'ko')).map(o=>`<option value="${esc(o.id)}">${esc(o.label)} · ${o.characterIds.length}명</option>`).join(''));
@@ -126,29 +136,56 @@ if(pageType==='sessions'){
 }
 
 function renderReader(session,data){
-  let page=Math.max(0,(Number(params.get('page'))||1)-1);const size=250;
+  let page=initialPage(),firstPage=page,visibleMessages=[],pageCount=1;const size=250;
   $('state').textContent='인물 이름을 누르면 그 인물의 다른 이야기를 볼 수 있습니다.';
   $('bodySearch').value=params.get('q')||'';$('onlyCharacter').checked=params.get('only')==='1';$('showBots').checked=params.get('bots')==='1';$('originalNames').checked=params.get('original')==='1';
   const texts=new Map(data.messages.map(m=>[m.id,norm([m.body,m.name,m.profile,...m.characters.flatMap(id=>[people.get(id).name,...people.get(id).aliases])].join(' '))]));
   const filtered=()=>data.messages.filter(m=>($('showBots').checked||m.type==='dialogue')&&(!$('onlyCharacter').checked||!$('focus').value||m.characters.includes($('focus').value))&&queryMatches(texts.get(m.id),$('bodySearch').value));
-  const render=()=>{
-    const ms=filtered(),count=Math.max(1,Math.ceil(ms.length/size));page=Math.min(page,count-1);const focus=$('focus').value;
-    $('messageCount').textContent=`${number(ms.length)}개 대화${ms.length?' · '+number(page*size+1)+'~'+number(Math.min((page+1)*size,ms.length)):''}`;
-    $('onlyCharacter').disabled=!focus;
-    $('messages').innerHTML=ms.slice(page*size,(page+1)*size).map(m=>{
+  const autoKey='rp-reader-auto-next';
+  try{$('autoNext').checked=localStorage.getItem(autoKey)==='1';}catch{}
+  const messageHTML=(ms,focus)=>ms.map(m=>{
       const name=$('originalNames').checked?m.profile||'시스템':m.name;
       const composite=/[\/·]|진행|서술/.test(m.name);
       const speaker=m.characters.length===1&&!composite&&!$('originalNames').checked?`<a class="speaker" href="${charLink(m.characters[0])}">${esc(people.get(m.characters[0]).name)}</a>`:`<span class="speaker">${esc(name)}</span>`;
       return `<article id="${esc(m.id)}" class="message${m.type!=='dialogue'?' system':''}${focus&&m.characters.includes(focus)?' highlighted':''}"><header>${speaker}<time>${esc(time(m.time))} · ${esc(m.room)}</time></header>${m.characters.length>1||composite&&m.characters.length?`<div class="chips">${chips(m.characters,focus)}</div>`:''}<div class="body">${esc(m.body)}</div><footer><a class="message-link" href="${readLink(session.id)}#${esc(m.id)}">이 대화 링크</a>${m.identity==='unresolved'?'<span>인물 대응 미확정</span>':''}</footer></article>`;
-    }).join('')||'<p class="empty">조건에 맞는 대화가 없습니다.</p>';
+    }).join('');
+  const clearAnchor=()=>{try{history.replaceState(null,'',location.href.split('#')[0]);}catch{}};
+  const observer=typeof IntersectionObserver==='function'?new IntersectionObserver(entries=>{
+    const rect=$('readerEnd').getBoundingClientRect();
+    if(entries.some(e=>e.isIntersecting)&&rect.top<=innerHeight+160&&rect.bottom>=0&&$('autoNext').checked&&!document.hidden&&page<pageCount-1){
+      page++;clearAnchor();render(true);
+    }
+  },{rootMargin:'0px 0px 160px 0px'}):null;
+  if(!observer){$('autoNext').checked=false;$('autoNext').disabled=true;}
+  const observeNext=()=>{
+    observer?.disconnect();
+    const hasNext=page<pageCount-1;
+    $('autoNextHint').textContent=!observer?'이 브라우저에서는 아래 페이지 버튼으로 이동할 수 있어요.':$('autoNext').checked?'끝까지 읽으면 다음 대화를 아래에 이어 붙입니다. 설정은 이 브라우저에 저장됩니다.':'켜두면 끝까지 읽을 때 다음 페이지가 자동으로 이어집니다.';
+    $('readerEnd').textContent=!visibleMessages.length?'':!hasNext?'이 조건의 마지막 대화입니다.':$('autoNext').checked?'계속 읽으면 다음 페이지가 이어집니다.':'다음 대화는 아래 페이지 버튼으로 열 수 있어요.';
+    if(observer&&hasNext&&$('autoNext').checked)observer.observe($('readerEnd'));
+  };
+  const render=(append=false)=>{
+    observer?.disconnect();
+    if(!append)visibleMessages=filtered();
+    const ms=visibleMessages;pageCount=Math.max(1,Math.ceil(ms.length/size));page=Math.min(page,pageCount-1);
+    if(!append)firstPage=page;
+    const focus=$('focus').value;
+    $('messageCount').textContent=`${number(ms.length)}개 대화${ms.length?' · '+number(firstPage*size+1)+'~'+number(Math.min((page+1)*size,ms.length)):''}`;
+    $('onlyCharacter').disabled=!focus;
+    const html=messageHTML(ms.slice(page*size,(page+1)*size),focus);
+    if(append)$('messages').insertAdjacentHTML('beforeend',`<div class="page-break" role="separator" aria-label="${page+1}페이지 시작">${number(page+1)} / ${number(pageCount)} 페이지</div>`+html);
+    else $('messages').innerHTML=html||'<p class="empty">조건에 맞는 대화가 없습니다.</p>';
     updateURL({q:$('bodySearch').value,focus:focus||(params.has('character')?'all':''),bots:$('showBots').checked?'1':'',only:$('onlyCharacter').checked?'1':'',original:$('originalNames').checked?'1':'',page:page?String(page+1):''});
-    pager(page,count,n=>{page=n;history.replaceState(null,'',location.href.split('#')[0]);render();$('messageCount').scrollIntoView();});
+    pager(page,pageCount,n=>{page=n;clearAnchor();render();$('messageCount').scrollIntoView({block:'start'});});
+    observeNext();
   };
   const jump=()=>{
     let anchor='';try{anchor=decodeURIComponent(location.hash.slice(1));}catch{}
     if(anchor){const target=data.messages.find(m=>m.id===anchor);if(target){$('bodySearch').value='';$('onlyCharacter').checked=false;if(target.type!=='dialogue')$('showBots').checked=true;const at=filtered().findIndex(m=>m.id===anchor);page=Math.floor(at/size);}}
     render();if(anchor)document.getElementById(anchor)?.scrollIntoView();
   };
-  for(const id of ['bodySearch','focus','onlyCharacter','showBots','originalNames'])$(id).addEventListener('input',()=>{page=0;history.replaceState(null,'',location.href.split('#')[0]);render();});
+  $('autoNext').addEventListener('change',()=>{try{localStorage.setItem(autoKey,$('autoNext').checked?'1':'0');}catch{}observeNext();});
+  document.addEventListener('visibilitychange',observeNext);
+  for(const id of ['bodySearch','focus','onlyCharacter','showBots','originalNames'])$(id).addEventListener('input',()=>{page=0;clearAnchor();render();});
   window.addEventListener('hashchange',jump);jump();
 }

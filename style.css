@@ -103,8 +103,18 @@ a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,s
 .chip{font-size:13px;color:var(--ink);text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:4px}
 .chip:hover{color:var(--accent);text-decoration-color:var(--accent)}
 .chip.selected{color:var(--accent);text-decoration-color:var(--accent)}
-.pager{display:flex;justify-content:space-between;align-items:center;gap:18px;margin:28px 0}
+.pager{display:flex;flex-direction:column;align-items:center;gap:12px;margin:28px 0}
 .pager span{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.pager-controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;width:100%;max-width:380px}
+.pager-controls button{padding:8px 10px}
+.page-position{grid-column:1/-1;grid-row:1;text-align:center}
+.page-numbers{display:flex;align-items:center;justify-content:center;gap:4px;max-width:100%}
+.page-numbers button{min-width:32px;padding:8px 6px;font-variant-numeric:tabular-nums}
+.page-numbers [aria-current=page]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
+.page-gap{padding:0 2px}
+.page-jump{display:flex;align-items:center;justify-content:center;gap:10px;font-size:13px;max-width:100%}
+.page-jump input{width:72px;text-align:center;font-variant-numeric:tabular-nums;border:1px solid var(--line-strong);padding:8px 4px}
+#resultCount,#messageCount{scroll-margin-top:80px}
 .empty{padding:40px 0;font-family:var(--serif);color:var(--muted);border-bottom:1px solid var(--line)}
 
 /* 캐릭터 일람 */
@@ -219,6 +229,8 @@ summary{color:var(--accent);cursor:pointer}
 .reader-options label{display:flex;align-items:center;gap:10px;min-height:28px}
 .reader-options input{width:18px;height:18px;margin:0;accent-color:var(--accent)}
 #messages{margin-top:4px}
+.reader-end{text-align:center;font-size:13px;min-height:2em;margin:24px 0}
+.page-break{text-align:center;color:var(--accent);font-size:13px;margin:24px 0 8px;padding:16px 0;border-top:3px double var(--line-strong);border-bottom:1px solid var(--line)}
 .message{padding:20px 0 16px;border-bottom:1px solid var(--line);scroll-margin-top:64px}
 .message.highlighted{margin:0 calc(-1 * var(--gutter));padding-left:var(--gutter);padding-right:var(--gutter);background:var(--surface)}
 .message:target{background:var(--accent-soft)}
