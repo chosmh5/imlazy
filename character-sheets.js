@@ -28,7 +28,8 @@ window.CharacterSheets=(()=>{
     host.hidden=false;
     const s=sheetFor(c);
     const tagline=document.getElementById('tagline');if(tagline)tagline.textContent=s?.tagline||'이 인물의 소개와 성향은 업데이트 중입니다.';
-    const metadata=`<details class="profile-aliases"><summary>로그의 프로필 표기 보기</summary><p class="muted">이 인물이 연결된 장면의 원래 프로필 이름입니다. 하나의 프로필로 다른 인물이 등장할 수도 있습니다.</p><div class="trait-tags">${c.profiles.map(p=>`<span>${esc(p)}</span>`).join('')||'<span>업데이트 중</span>'}</div></details>`;
+    const directProfiles=c.directProfiles||c.profiles,contextProfiles=c.contextProfiles||[];
+    const metadata=`<details class="profile-aliases"><summary>로그의 프로필 표기 보기</summary><p class="muted">대화에 표시된 프로필을 역할별로 나눈 목록입니다. 같은 캐릭터나 같은 오너라는 뜻은 아닙니다. 오너 연결은 위의 ‘같은 오너의 캐릭터’에서 확인할 수 있습니다.</p><p><strong>캐릭터 발화에 사용된 프로필</strong></p><div class="trait-tags direct-profiles">${directProfiles.map(p=>`<span>${esc(p)}</span>`).join('')||'<span>단독 발화 프로필 미확인</span>'}</div>${contextProfiles.length?`<p><strong>진행·회상·복수 인물 서술에 사용된 프로필</strong></p><p class="muted small">이 인물이 등장하는 장면을 진행하거나 여러 인물을 함께 서술한 프로필입니다.</p><div class="trait-tags context-profiles">${contextProfiles.map(p=>`<span>${esc(p)}</span>`).join('')}</div>`:''}</details>`;
     const heading=`<div class="sheet-heading"><div class="character-mark" aria-hidden="true">${esc(c.name.trim().charAt(0))}</div><div><p class="eyebrow">CHARACTER SHEET</p><h2 id="sheetTitle">인물 시트</h2><span class="sheet-status ${s?'ready':'pending'}">${s?.mode==='stories'?'이야기 수록 · 분석 기록 부족':s?'소개·평가 수록':'업데이트 중'}</span></div></div>`;
     if(!s){
       host.innerHTML=`${heading}<div class="pending-sheet"><h3>이 인물의 이야기를 살펴보고 있어요.</h3><p>프로필 정보, 한줄 평가, 핵심 성향과 성향별 근거를 차례로 추가합니다.</p><div class="pending-fields"><span>캐릭터 정보 · 업데이트 중</span><span>인물 평가 · 업데이트 중</span><span>성향 육각형 · 업데이트 중</span></div><a class="button-link" href="#characterContent">참가한 대화·세션 보기 ↓</a></div>${metadata}`;
