@@ -284,3 +284,6 @@ main>footer{border-top:0;padding-top:28px;background:url("data:image/svg+xml,%3C
 [data-page=sessions] .hero h1::first-letter{font-size:1.9em;line-height:1;margin:.078em .14em 0 0;padding:.07em .12em .04em}
 [data-page=sessions] .hero .lead{margin-top:0}
 @media(min-width:760px){[data-page=sessions] .hero h1{margin-bottom:44px}}
+
+/* 오너 연결과 양도 이력 */
+.owner-panel{border:1px solid var(--line);background:var(--surface);border-radius:0;padding:20px;margin-bottom:28px;overflow-wrap:anywhere}.owner-panel h2{margin-top:0}.owner-panel details{font-size:13px;margin:12px 0}.owner-transfer{border-left:3px solid var(--accent);padding:8px 14px;font-size:13px}

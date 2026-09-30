@@ -8,6 +8,8 @@ const time=v=>(v||'').slice(0,16).replace('T',' ');
 const catalog=window.RP_CATALOG;
 if(!catalog)throw new Error('목록 파일을 불러오지 못했습니다.');
 const people=new Map(catalog.characters.map(c=>[c.id,c]));
+const owners=new Map((catalog.owners||[]).map(o=>[o.id,o]));
+const ownerLink=id=>`characters.html?owner=${encodeURIComponent(id)}`;
 const characterOptions=id=>(people.has(id)?[id]:catalog.characterRedirects?.[id]||[]).map(key=>people.get(key)).filter(Boolean);
 const selectedCharacter=(id,scope)=>{const options=characterOptions(id).filter(c=>!scope||scope.includes(c.id));return options.length===1?options[0]:null;};
 const sessions=new Map(catalog.sessions.map(s=>[s.id,s]));
@@ -64,22 +66,26 @@ if(pageType==='sessions'){
   let page=Math.max(0,(Number(params.get('page'))||1)-1);const size=48;
   $('search').value=params.get('q')||'';$('sort').value=params.get('sort')||'name';
   $('sheet').value=params.get('sheet')||'';
+  $('owner').insertAdjacentHTML('beforeend',[...owners.values()].sort((a,b)=>a.label.localeCompare(b.label,'ko')).map(o=>`<option value="${esc(o.id)}">${esc(o.label)} · ${o.characterIds.length}명</option>`).join(''));
+  $('owner').value=params.get('owner')||'';
   if(!$('sheet').value)$('sheet').value='';
   const sheets=window.CharacterSheets;
   const sheetCount=sheets?.readyCount||0;
   $('sheetProgress').textContent=`인물 소개 ${number(sheetCount)} / ${number(catalog.characters.length)}명 수록 (${(100*sheetCount/catalog.characters.length).toFixed(1)}%) · 나머지 소개는 업데이트 중입니다. 모든 인물의 참가 기록은 열람할 수 있습니다.`;
   const render=()=>{
-    const found=catalog.characters.filter(c=>(!$('sheet').value||(sheets?.status(c)||'pending')===$('sheet').value)&&queryMatches(norm([c.name,...c.aliases,sheets?.searchText(c)||''].join(' ')),$('search').value));
+    const candidates=catalog.characters.filter(c=>(!$('sheet').value||(sheets?.status(c)||'pending')===$('sheet').value)&&(!$('owner').value||($('owner').value==='unassigned'?!c.ownerId:c.ownerId===$('owner').value)));
+    let found=candidates.filter(c=>queryMatches(norm([c.name,...c.aliases,sheets?.searchText(c)||''].join(' ')),$('search').value));
+    if(!found.length&&$('search').value.trim())found=candidates.filter(c=>queryMatches(norm((owners.get(c.ownerId)?.profiles||[]).join(' ')),$('search').value));
     if($('sort').value==='count')found.sort((a,b)=>b.sessionIds.length-a.sessionIds.length||a.name.localeCompare(b.name,'ko'));
     if($('sort').value==='recent')found.sort((a,b)=>b.last.localeCompare(a.last));
     const count=Math.max(1,Math.ceil(found.length/size));page=Math.min(page,count-1);
     $('resultCount').textContent=`${number(found.length)}명의 기록`;
     $('results').innerHTML=found.slice(page*size,(page+1)*size).map(c=>`<a class="character-card" href="${charLink(c.id)}"><h2>${esc(c.name)}</h2>${sheets?.card(c)||''}<p>${esc(c.aliases.join(' · ')||'')}</p><strong>${number(c.sessionIds.length)}개 이야기</strong><p>${esc(day(c.first))} ~ ${esc(day(c.last))}</p><span class="card-action">인물 시트와 참가 기록 →</span></a>`).join('')||'<p class="empty">해당하는 캐릭터가 없습니다.</p>';
-    updateURL({q:$('search').value,sheet:$('sheet').value,sort:$('sort').value==='name'?'':$('sort').value,page:page?String(page+1):''});
+    updateURL({q:$('search').value,sheet:$('sheet').value,owner:$('owner').value,sort:$('sort').value==='name'?'':$('sort').value,page:page?String(page+1):''});
     pager(page,count,n=>{page=n;render();$('resultCount').scrollIntoView();});
   };
-  for(const id of ['search','sort','sheet'])$(id).oninput=()=>{page=0;render();};
-  $('reset').onclick=()=>{$('search').value='';$('sort').value='name';$('sheet').value='';page=0;render();};render();
+  for(const id of ['search','sort','sheet','owner'])$(id).oninput=()=>{page=0;render();};
+  $('reset').onclick=()=>{$('search').value='';$('sort').value='name';$('sheet').value='';$('owner').value='';page=0;render();};render();
 }else if(pageType==='character'){
   const options=characterOptions(params.get('id')),c=options.length===1?options[0]:null;
   if(!c){$('title').textContent=options.length?'같은 이름의 캐릭터':'캐릭터를 찾지 못했습니다';$('aliases').innerHTML=options.length?`기록에 등장한 인물을 선택해 주세요.<div class="chips">${chips(options.map(c=>c.id))}</div>`:'캐릭터 일람에서 다시 선택해 주세요.';$('characterContent').hidden=true;}
@@ -90,6 +96,9 @@ if(pageType==='sessions'){
     const own=c.sessionIds.map(id=>sessions.get(id));
     $('characterNav').hidden=false;
     window.CharacterSheets?.render(c);
+    const owner=owners.get(c.ownerId),transfers=(catalog.ownerTransfers||[]).filter(t=>t.characterId===c.id);
+    $('ownerInfo').hidden=false;
+    $('ownerInfo').innerHTML=owner?`<h2 id="ownerTitle">같은 오너의 캐릭터</h2><p><a href="${ownerLink(owner.id)}">${esc(owner.label)} 전체 보기 →</a></p><div class="chips">${chips(owner.characterIds,c.id)}</div>${owner.profiles.length?`<p class="muted small">이 묶음의 기록에서 사용된 프로필: ${esc(owner.profiles.join(' · '))}</p>`:''}${transfers.map(t=>`<p class="owner-transfer"><strong>양도 이력 · ${esc(t.period)}</strong><br><a href="${ownerLink(t.fromOwnerId)}">${esc(owners.get(t.fromOwnerId)?.label)}</a> → <a href="${ownerLink(t.toOwnerId)}">${esc(owners.get(t.toOwnerId)?.label)}</a><br>${esc(t.note)}</p>`).join('')}${owner.reviewQuestions?.length?`<details><summary>추가 확인이 필요한 오너 연결 ${owner.reviewQuestions.length}건</summary>${owner.reviewQuestions.map(q=>`<p>${esc(q.names.join(' · '))}: ${esc(q.reason)} <a href="${readLink(q.source)}#${esc(q.anchor)}">근거 대화</a></p>`).join('')}</details>`:''}<p class="muted small">제공된 명단과 확인된 양도 이력을 기준으로 묶었습니다. 프로필명만으로 GM·대리 연기 장면의 오너를 판단하지 않습니다.</p>`:'<h2 id="ownerTitle">오너 연결 미확정</h2><p class="muted small">현재 명단과 로그만으로 오너를 확정하지 못했습니다. 아래 참가 기록은 열람할 수 있습니다.</p>';
     const companions=[...new Set(own.flatMap(s=>s.characters))].filter(id=>id!==c.id).map(id=>people.get(id)).filter(Boolean).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
     $('with').insertAdjacentHTML('beforeend',companions.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join(''));
     $('overview').innerHTML=stats([[number(own.length),'참가·등장 기록'],[number(own.filter(s=>s.story==='prepared').length),'준비된 세션'],[number(own.filter(s=>s.story==='free').length),'자유 RP'],[day(c.first),'첫 수록 날짜']]);
