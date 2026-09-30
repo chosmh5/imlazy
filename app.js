@@ -71,7 +71,7 @@ if(pageType==='sessions'){
   if(!$('sheet').value)$('sheet').value='';
   const sheets=window.CharacterSheets;
   const sheetCount=sheets?.readyCount||0;
-  $('sheetProgress').textContent=`인물 소개 ${number(sheetCount)} / ${number(catalog.characters.length)}명 수록 (${(100*sheetCount/catalog.characters.length).toFixed(1)}%) · 나머지 소개는 업데이트 중입니다. 모든 인물의 참가 기록은 열람할 수 있습니다.`;
+  $('sheetProgress').textContent=`인물 소개 ${number(sheetCount)} / ${number(catalog.characters.length)}명 수록 (${(100*sheetCount/catalog.characters.length).toFixed(1)}%) · 상세 분석 ${number(sheetCount-(sheets?.storyOnlyCount||0))}명 · 기록 중심 소개 ${number(sheets?.storyOnlyCount||0)}명. 나머지 소개는 업데이트 중이며, 모든 인물의 참가 기록은 열람할 수 있습니다.`;
   const render=()=>{
     const candidates=catalog.characters.filter(c=>(!$('sheet').value||(sheets?.status(c)||'pending')===$('sheet').value)&&(!$('owner').value||($('owner').value==='unassigned'?!c.ownerId:c.ownerId===$('owner').value)));
     let found=candidates.filter(c=>queryMatches(norm([c.name,...c.aliases,sheets?.searchText(c)||''].join(' ')),$('search').value));
