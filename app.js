@@ -95,7 +95,7 @@ if(pageType==='sessions'){
     if($('sort').value==='recent')found.sort((a,b)=>b.last.localeCompare(a.last));
     const count=Math.max(1,Math.ceil(found.length/size));page=Math.min(page,count-1);
     $('resultCount').textContent=`${number(found.length)}명의 기록`;
-    $('results').innerHTML=found.slice(page*size,(page+1)*size).map(c=>`<a class="character-card" href="${charLink(c.id)}"><h2>${esc(c.name)}</h2>${sheets?.card(c)||''}<p>${esc(c.aliases.join(' · ')||'')}</p><strong>${number(c.sessionIds.length)}개 이야기</strong><p>${esc(day(c.first))} ~ ${esc(day(c.last))}</p><span class="card-action">인물 시트와 참가 기록 →</span></a>`).join('')||'<p class="empty">해당하는 캐릭터가 없습니다.</p>';
+    $('results').innerHTML=found.slice(page*size,(page+1)*size).map(c=>`<a class="character-card" href="${charLink(c.id)}">${sheets?.cardHeading(c)||`<h2>${esc(c.name)}</h2>`}${sheets?.card(c)||''}<p>${esc(c.aliases.join(' · ')||'')}</p><strong>${number(c.sessionIds.length)}개 이야기</strong><p>${esc(day(c.first))} ~ ${esc(day(c.last))}</p><span class="card-action">인물 시트와 참가 기록 →</span></a>`).join('')||'<p class="empty">해당하는 캐릭터가 없습니다.</p>';
     updateURL({q:$('search').value,sheet:$('sheet').value,owner:$('owner').value,sort:$('sort').value==='name'?'':$('sort').value,page:page?String(page+1):''});
     pager(page,count,n=>{page=n;render();$('resultCount').scrollIntoView();});
   };
