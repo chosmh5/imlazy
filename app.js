@@ -13,6 +13,9 @@ const ownerLink=id=>`characters.html?owner=${encodeURIComponent(id)}`;
 const characterOptions=id=>(people.has(id)?[id]:catalog.characterRedirects?.[id]||[]).map(key=>people.get(key)).filter(Boolean);
 const selectedCharacter=(id,scope)=>{const options=characterOptions(id).filter(c=>!scope||scope.includes(c.id));return options.length===1?options[0]:null;};
 const sessions=new Map(catalog.sessions.map(s=>[s.id,s]));
+const places=new Map((catalog.places||[]).map(p=>[p.id,p]));
+const placeLink=id=>`place.html?id=${encodeURIComponent(id)}`;
+const placeChips=ids=>ids.filter(id=>places.has(id)).map(id=>`<a class="chip place-chip" href="${placeLink(id)}">${esc(places.get(id).name)}</a>`).join('');
 const charLink=id=>`character.html?id=${encodeURIComponent(id)}`;
 const readLink=(id,character='')=>`read.html?id=${encodeURIComponent(id)}${character?'&character='+encodeURIComponent(character):''}`;
 const chips=(ids,selected='')=>ids.filter(id=>people.has(id)).map(id=>`<a class="chip${id===selected?' selected':''}" href="${charLink(id)}">${esc(people.get(id).name)}</a>`).join('');
@@ -41,19 +44,21 @@ function pager(page,total,onChange){
 }
 function stats(items){return items.map(([value,label])=>`<div class="stat"><strong>${esc(value)}</strong><span>${esc(label)}</span></div>`).join('');}
 function storyCard(s,character=''){
-  return `<article class="story-card"><div class="story-meta"><span class="tag ${s.story}">${esc(s.storyLabel)}</span><span>${esc(day(s.start))}${day(s.start)!==day(s.end)?' ~ '+esc(day(s.end)):''}</span><span>${esc(s.rooms.join(' · '))}</span><span>${number(s.count)}개 대화</span>${s.kind==='fragment'?'<span class="tag unknown">일부 수록</span>':''}</div><h3><a class="story-title" href="${readLink(s.id,character)}">${esc(s.title)}</a></h3><p class="snippet">${esc(s.summary)}</p><div class="chips">${chips(s.characters,character)||'<span class="muted">연결된 인물 정보 없음</span>'}</div></article>`;
+  return `<article class="story-card"><div class="story-meta"><span class="tag ${s.story}">${esc(s.storyLabel)}</span><span>${esc(day(s.start))}${day(s.start)!==day(s.end)?' ~ '+esc(day(s.end)):''}</span><span>채팅방 ${esc(s.rooms.join(' · '))}</span><span>${number(s.count)}개 대화</span>${s.kind==='fragment'?'<span class="tag unknown">일부 수록</span>':''}</div><h3><a class="story-title" href="${readLink(s.id,character)}">${esc(s.title)}</a></h3>${s.setting?`<p class="story-setting"><span>${s.setting.status==='summary'?'장소 단서':'주요 무대'}</span> ${esc(s.setting.label)}${s.setting.tags.length?`<small>${esc(s.setting.tags.join(' · '))}</small>`:''}</p>`:''}<p class="snippet">${esc(s.summary)}</p>${s.setting?.scenePlaceIds.length?`<div class="chips">${placeChips(s.setting.scenePlaceIds)}</div>`:''}<div class="chips">${chips(s.characters,character)||'<span class="muted">연결된 인물 정보 없음</span>'}</div></article>`;
 }
-const searchable=new Map(catalog.sessions.map(s=>[s.id,norm([s.title,s.summary,...s.profiles,...s.characters.flatMap(id=>{const c=people.get(id);return c?[c.name,...c.aliases]:[];})].join(' '))]));
+const searchable=new Map(catalog.sessions.map(s=>[s.id,norm([s.title,s.summary,s.setting?.label,...(s.setting?.namedPlaceIds||[]).flatMap(id=>{const p=places.get(id);return p?[p.name,...p.aliases]:[];}),...s.profiles,...s.characters.flatMap(id=>{const c=people.get(id);return c?[c.name,...c.aliases]:[];})].join(' '))]));
 const queryMatches=(text,q)=>norm(q).split(' ').filter(Boolean).every(word=>text.includes(word));
 
 function setupStories(base,character=''){
   let page=initialPage();const size=30;
-  const fields=['search','story','room','with','from','to','sort'].filter(id=>$(id));
-  const defaults={search:'',story:'',room:'',with:'',from:'',to:'',sort:'oldest'};
+  if($('place'))$('place').insertAdjacentHTML('beforeend',[...places.values()].sort((a,b)=>a.name.localeCompare(b.name,'ko')).map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join(''));
+  const fields=['search','story','room','place','placeScope','with','from','to','sort'].filter(id=>$(id));
+  const defaults={search:'',story:'',room:'',place:'',placeScope:'scene',with:'',from:'',to:'',sort:'oldest'};
   for(const id of fields){const value=params.get(id==='search'?'q':id);if(value!==null)$(id).value=value;if($(id).value==='')$(id).value=defaults[id];}
   const render=()=>{
     let found=base.filter(s=>(!$('story').value||s.story===$('story').value)&&(!$('room')?.value||s.rooms.includes($('room').value))&&(!$('from').value||day(s.end)>=$('from').value)&&(!$('to').value||day(s.start)<=$('to').value)&&queryMatches(searchable.get(s.id),$('search').value));
     if($('with')?.value)found=found.filter(s=>s.characters.includes($('with').value));
+    if($('place')?.value)found=found.filter(s=>(s.setting?.[$('placeScope')?.value==='all'?'namedPlaceIds':'scenePlaceIds']||[]).includes($('place').value));
     if($('sort').value==='newest')found=[...found].reverse();
     const count=Math.max(1,Math.ceil(found.length/size));page=Math.min(page,count-1);
     $('resultCount').textContent=`${number(found.length)}개 이야기${character?' · 이 인물의 참가·등장 기록':''}`;
@@ -119,8 +124,9 @@ if(pageType==='sessions'){
   if(!s){$('title').textContent='이야기를 찾지 못했습니다';$('state').textContent='목록에서 이야기를 다시 선택해 주세요.';for(const id of ['participantsSection','readingControls','summaryBox','partsBox','relatedSection'])$(id).hidden=true;}
   else{
     document.title=`${s.title} · 어설픈 용맹`;$('title').textContent=s.title;
-    $('period').textContent=`${day(s.start)} ~ ${day(s.end)} · ${s.rooms.join(' / ')} · ${s.storyLabel}`;
+    $('period').textContent=`플레이 날짜 ${day(s.start)} ~ ${day(s.end)} · 채팅방 ${s.rooms.join(' / ')} · ${s.storyLabel}`;
     $('synopsis').textContent=s.summary;$('classification').textContent=textEvidence(s.classification);
+    window.PlaceGuide?.renderSetting(s);
     const origin=selectedCharacter(params.get('character'),s.characters);
     if(origin&&s.characters.includes(origin.id))$('breadcrumb').innerHTML=`<a href="characters.html">캐릭터 일람</a> / <a href="${charLink(origin.id)}">${esc(origin.name)}의 참가 기록</a> / 이야기 읽기`;
     $('participants').innerHTML=chips(s.characters,origin?.id)||'<p class="muted">인물 연결 확인 중</p>';
@@ -133,7 +139,8 @@ if(pageType==='sessions'){
     script.onload=()=>{if(window.RP_SESSION?.id===s.id)renderReader(s,window.RP_SESSION);else $('state').textContent='대화 파일을 확인할 수 없습니다.';};
     script.onerror=()=>{$('state').textContent='대화를 불러오지 못했습니다. 잠시 뒤 다시 열어 주세요.';};document.head.append(script);
   }
-}
+}else if(pageType==='places')window.PlaceGuide?.renderPlaces();
+else if(pageType==='place')window.PlaceGuide?.renderPlace();
 
 function renderReader(session,data){
   let page=initialPage(),firstPage=page,visibleMessages=[],pageCount=1;const size=250;
