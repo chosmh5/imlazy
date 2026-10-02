@@ -317,6 +317,11 @@ main>footer{margin-top:48px;padding-top:18px;border-top:3px double var(--line-st
 .character-card .character-class{display:flex;align-items:center;gap:8px;min-height:28px;font-size:13px;margin-top:6px}
 .character-card .character-class .class-icon{width:28px;height:28px}
 .character-card .character-class.is-unknown{color:var(--muted)}
+@media(min-width:760px){
+  .character-card-heading{min-height:72px}
+  .character-card-heading.has-class{position:relative;padding-right:80px}
+  .character-card .character-class .class-icon{position:absolute;top:0;right:0;width:64px;height:64px}
+}
 .character-mark.has-class{width:64px;height:64px;clip-path:none;background:transparent}
 .character-mark.has-class .class-icon{width:100%;height:100%}
 .sheet-heading .character-class{margin:0 0 6px}

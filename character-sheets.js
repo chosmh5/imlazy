@@ -14,7 +14,7 @@ window.CharacterSheets=(()=>{
   const classIcon=job=>`<span class="class-icon" aria-hidden="true">${job.svg}</span>`;
   const cardHeading=c=>{
     const job=classFor(c);
-    return `<div class="character-card-heading"><h2>${esc(c.name)}</h2><div class="character-class${job?'':' is-unknown'}"><span>${job?esc(classLabel(job)):'직업 미확인'}</span>${job?classIcon(job):''}</div></div>`;
+    return `<div class="character-card-heading${job?' has-class':''}"><h2>${esc(c.name)}</h2><div class="character-class${job?'':' is-unknown'}"><span>${job?esc(classLabel(job)):'직업 미확인'}</span>${job?classIcon(job):''}</div></div>`;
   };
   const sourceLink=(id,label)=>{const s=stories.get(id);return s?`<a class="source-link" href="read.html?id=${encodeURIComponent(id)}">${esc(label||s.title)} <span aria-hidden="true">↗</span></a>`:'';};
   const readyCount=Object.keys(data.entries).length;
