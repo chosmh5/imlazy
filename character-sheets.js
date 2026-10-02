@@ -11,16 +11,19 @@ window.CharacterSheets=(()=>{
     return definition?{...definition,...assigned}:null;
   };
   const classLabel=job=>`${job.name}${job.estimated?' · 추정':''}`;
-  const classIcon=job=>`<span class="class-icon" aria-hidden="true">${job.svg}</span>`;
+  const classIcon=job=>{
+    const unconfirmed=!job||job.estimated,icon=unconfirmed?classData.unknown:job;
+    return icon?.svg?`<span class="class-icon${unconfirmed?' is-unconfirmed':''}" aria-hidden="true">${icon.svg}</span>`:'';
+  };
   const cardHeading=c=>{
-    const job=classFor(c);
-    return `<div class="character-card-heading${job?' has-class':''}"><h2>${esc(c.name)}</h2><div class="character-class${job?'':' is-unknown'}"><span>${job?esc(classLabel(job)):'직업 미확인'}</span>${job?classIcon(job):''}</div></div>`;
+    const job=classFor(c),icon=classIcon(job);
+    return `<div class="character-card-heading${icon?' has-class':''}"><h2>${esc(c.name)}</h2><div class="character-class${job?'':' is-unknown'}"><span>${job?esc(classLabel(job)):'직업 미확인'}</span>${icon}</div></div>`;
   };
   const sourceLink=(id,label)=>{const s=stories.get(id);return s?`<a class="source-link" href="read.html?id=${encodeURIComponent(id)}">${esc(label||s.title)} <span aria-hidden="true">↗</span></a>`:'';};
   const readyCount=Object.keys(data.entries).length;
   const storyOnlyCount=Object.values(data.entries).filter(s=>s.mode==='stories').length;
   const status=c=>sheetFor(c)?'ready':'pending';
-  const searchText=c=>{const s=sheetFor(c),job=classFor(c);return [job?.name||'',...(s?[s.tagline,...s.tags,...s.facts.map(f=>f.value)]:[])].join(' ');};
+  const searchText=c=>{const s=sheetFor(c),job=classFor(c);return [job?classLabel(job):'직업 미확인',...(s?[s.tagline,...s.tags,...s.facts.map(f=>f.value)]:[])].join(' ');};
   const card=c=>{const s=sheetFor(c);return `<span class="sheet-status ${s?'ready':'pending'}">${s?.mode==='stories'?'이야기 수록 · 분석 기록 부족':s?'인물 시트 수록':'업데이트 중'}</span><p class="card-tagline">${esc(s?.tagline||'소개와 성향을 정리하고 있습니다. 참가 기록은 바로 볼 수 있어요.')}</p>${s?`<div class="trait-tags">${s.tags.map(t=>`<span>${esc(t)}</span>`).join('')}</div>`:''}`;};
   const coordinates=(index,value,radius=112)=>{const a=-Math.PI/2+index*Math.PI/3;return [200+Math.cos(a)*radius*value/5,160+Math.sin(a)*radius*value/5];};
   const point=p=>p.map(n=>n.toFixed(2)).join(',');
@@ -41,8 +44,8 @@ window.CharacterSheets=(()=>{
     const tagline=document.getElementById('tagline');if(tagline)tagline.textContent=s?.tagline||'이 인물의 소개와 성향은 업데이트 중입니다.';
     const directProfiles=c.directProfiles||c.profiles,contextProfiles=c.contextProfiles||[];
     const metadata=`<details class="profile-aliases"><summary>로그의 프로필 표기 보기</summary><p class="muted">대화에 표시된 프로필을 역할별로 나눈 목록입니다. 같은 캐릭터나 같은 오너라는 뜻은 아닙니다. 오너 연결은 위의 ‘같은 오너의 캐릭터’에서 확인할 수 있습니다.</p><p><strong>캐릭터 발화에 사용된 프로필</strong></p><div class="trait-tags direct-profiles">${directProfiles.map(p=>`<span>${esc(p)}</span>`).join('')||'<span>단독 발화 프로필 미확인</span>'}</div>${contextProfiles.length?`<p><strong>진행·회상·복수 인물 서술에 사용된 프로필</strong></p><p class="muted small">이 인물이 등장하는 장면을 진행하거나 여러 인물을 함께 서술한 프로필입니다.</p><div class="trait-tags context-profiles">${contextProfiles.map(p=>`<span>${esc(p)}</span>`).join('')}</div>`:''}</details>`;
-    const job=classFor(c);
-    const heading=`<div class="sheet-heading"><div class="character-mark${job?' has-class':''}" aria-hidden="true">${job?classIcon(job):esc(c.name.trim().charAt(0))}</div><div><p class="eyebrow">CHARACTER SHEET</p><h2 id="sheetTitle">인물 시트</h2>${job?`<p class="character-class">${esc(classLabel(job))}</p>`:''}<span class="sheet-status ${s?'ready':'pending'}">${s?.mode==='stories'?'이야기 수록 · 분석 기록 부족':s?'소개·평가 수록':'업데이트 중'}</span></div></div>`;
+    const job=classFor(c),icon=classIcon(job);
+    const heading=`<div class="sheet-heading"><div class="character-mark${icon?' has-class':''}" aria-hidden="true">${icon||esc(c.name.trim().charAt(0))}</div><div><p class="eyebrow">CHARACTER SHEET</p><h2 id="sheetTitle">인물 시트</h2><p class="character-class">${job?esc(classLabel(job)):'직업 미확인'}</p><span class="sheet-status ${s?'ready':'pending'}">${s?.mode==='stories'?'이야기 수록 · 분석 기록 부족':s?'소개·평가 수록':'업데이트 중'}</span></div></div>`;
     if(!s){
       host.innerHTML=`${heading}<div class="pending-sheet"><h3>이 인물의 이야기를 살펴보고 있어요.</h3><p>프로필 정보, 한줄 평가, 핵심 성향과 성향별 근거를 차례로 추가합니다.</p><div class="pending-fields"><span>캐릭터 정보 · 업데이트 중</span><span>인물 평가 · 업데이트 중</span><span>성향 육각형 · 업데이트 중</span></div><a class="button-link" href="#characterContent">참가한 대화·세션 보기 ↓</a></div>${metadata}`;
       return;
