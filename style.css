@@ -15,6 +15,34 @@
   --sans:"IBM Plex Sans KR",sans-serif;
   --gutter:20px;
 }
+/* Illustrated scenes share stable anchors between the gallery and reader. */
+.illustration-hero{border-bottom:1px solid var(--line-strong);padding-bottom:28px}
+.illustration-count{margin:24px 0 20px;font-size:12px;letter-spacing:.04em}
+.illustration-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:48px 30px}
+.illustration-card{min-width:0;scroll-margin-top:110px;border-bottom:1px solid var(--line-strong);padding-bottom:26px}
+.illustration-image{display:block;overflow:hidden;background:var(--surface)}
+.illustration-image img{display:block;width:100%;height:auto;aspect-ratio:3/2;object-fit:contain}
+.illustration-image:hover{outline:1px solid var(--accent);outline-offset:3px}
+.illustration-image:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+.illustration-caption{padding-top:20px}
+.illustration-caption .eyebrow{margin:0 0 10px}
+.illustration-caption h2{margin:0 0 12px;font-size:25px}
+.illustration-caption h2 a{color:var(--ink)}
+.illustration-caption>p{margin:12px 0;line-height:1.85}
+.illustration-caption .illustration-people{color:var(--accent);font-size:12px}
+.illustration-caption .illustration-source{color:var(--muted);font-size:12px;margin-top:20px}
+.illustration-actions{display:flex;flex-wrap:wrap;gap:8px 22px;align-items:center;font-size:12px}
+.illustration-actions a{display:inline-flex;align-items:center;min-height:36px}
+.illustration-actions .illustration-read{font-size:14px}
+.scene-illustration{margin:32px 0 40px;padding:0 0 24px;border-bottom:1px solid var(--line-strong);scroll-margin-top:110px}
+.scene-illustration:target{outline:1px solid var(--line-strong);outline-offset:10px}
+.scene-illustration figcaption{padding:20px 0 0}
+.scene-illustration h3{margin:8px 0}
+.scene-illustration figcaption>p{margin:8px 0 12px;font-size:14px;color:var(--muted)}
+.scene-illustration-index{list-style:none;padding:0;margin:12px 0 0}
+.scene-illustration-index a{display:flex;justify-content:space-between;align-items:center;min-height:44px}
+@media(min-width:761px){.illustration-featured{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);align-items:center;gap:32px}.illustration-featured .illustration-caption{padding:0}.illustration-featured h2{font-size:30px}}
+@media(max-width:650px){.illustration-grid{grid-template-columns:1fr;gap:36px}.illustration-card,.scene-illustration{scroll-margin-top:135px}.illustration-caption h2{font-size:23px}}
 /* Geography and per-story settings use the archive's existing manuscript theme. */
 .place-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 30px}
 .place-card{padding:26px 0;border-bottom:1px solid var(--line)}

@@ -127,6 +127,7 @@ if(pageType==='sessions'){
     $('period').textContent=`플레이 날짜 ${day(s.start)} ~ ${day(s.end)} · 채팅방 ${s.rooms.join(' / ')} · ${s.storyLabel}`;
     $('synopsis').textContent=s.summary;$('classification').textContent=textEvidence(s.classification);
     window.PlaceGuide?.renderSetting(s);
+    window.Illustrations?.renderContents(s.id);
     const origin=selectedCharacter(params.get('character'),s.characters);
     if(origin&&s.characters.includes(origin.id))$('breadcrumb').innerHTML=`<a href="characters.html">캐릭터 일람</a> / <a href="${charLink(origin.id)}">${esc(origin.name)}의 참가 기록</a> / 이야기 읽기`;
     $('participants').innerHTML=chips(s.characters,origin?.id)||'<p class="muted">인물 연결 확인 중</p>';
@@ -154,7 +155,7 @@ function renderReader(session,data){
       const name=$('originalNames').checked?m.profile||'시스템':m.name;
       const composite=/[\/·]|진행|서술/.test(m.name);
       const speaker=m.characters.length===1&&!composite&&!$('originalNames').checked?`<a class="speaker" href="${charLink(m.characters[0])}">${esc(people.get(m.characters[0]).name)}</a>`:`<span class="speaker">${esc(name)}</span>`;
-      return `<article id="${esc(m.id)}" class="message${m.type!=='dialogue'?' system':''}${focus&&m.characters.includes(focus)?' highlighted':''}"><header>${speaker}<time>${esc(time(m.time))} · ${esc(m.room)}</time></header>${m.characters.length>1||composite&&m.characters.length?`<div class="chips">${chips(m.characters,focus)}</div>`:''}<div class="body">${esc(m.body)}</div><footer><a class="message-link" href="${readLink(session.id)}#${esc(m.id)}">이 대화 링크</a>${m.identity==='unresolved'?'<span>인물 대응 미확정</span>':''}</footer></article>`;
+      return `<article id="${esc(m.id)}" class="message${m.type!=='dialogue'?' system':''}${focus&&m.characters.includes(focus)?' highlighted':''}"><header>${speaker}<time>${esc(time(m.time))} · ${esc(m.room)}</time></header>${m.characters.length>1||composite&&m.characters.length?`<div class="chips">${chips(m.characters,focus)}</div>`:''}<div class="body">${esc(m.body)}</div><footer><a class="message-link" href="${readLink(session.id)}#${esc(m.id)}">이 대화 링크</a>${m.identity==='unresolved'?'<span>인물 대응 미확정</span>':''}</footer></article>${window.Illustrations?.afterMessageHTML(session.id,m.id)||''}`;
     }).join('');
   const clearAnchor=()=>{try{history.replaceState(null,'',location.href.split('#')[0]);}catch{}};
   const observer=typeof IntersectionObserver==='function'?new IntersectionObserver(entries=>{
@@ -188,7 +189,7 @@ function renderReader(session,data){
   };
   const jump=()=>{
     let anchor='';try{anchor=decodeURIComponent(location.hash.slice(1));}catch{}
-    if(anchor){const target=data.messages.find(m=>m.id===anchor);if(target){$('bodySearch').value='';$('onlyCharacter').checked=false;if(target.type!=='dialogue')$('showBots').checked=true;const at=filtered().findIndex(m=>m.id===anchor);page=Math.floor(at/size);}}
+    if(anchor){const messageAnchor=window.Illustrations?.anchorMessage(session.id,anchor)||anchor;const target=data.messages.find(m=>m.id===messageAnchor);if(target){$('bodySearch').value='';$('onlyCharacter').checked=false;if(target.type!=='dialogue')$('showBots').checked=true;const at=filtered().findIndex(m=>m.id===messageAnchor);page=Math.floor(at/size);}}
     render();if(anchor)document.getElementById(anchor)?.scrollIntoView();
   };
   $('autoNext').addEventListener('change',()=>{try{localStorage.setItem(autoKey,$('autoNext').checked?'1':'0');}catch{}observeNext();});
