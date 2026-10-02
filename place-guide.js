@@ -29,34 +29,93 @@ window.PlaceGuide=(()=>{
       }
     });
   }
+  /* 지명 도감: 색 = 대륙 방위, 아이콘 = 장소 유형, 별 = 등장 이야기 수 */
+  const DIRS={
+    C:{name:'중앙',color:'#b48ae0'},N:{name:'북부',color:'#86aee8'},E:{name:'동부',color:'#68b878'},
+    S:{name:'남부',color:'#4fb8b4'},W:{name:'서부',color:'#dd9550'},U:{name:'방위 미확인',color:'#7c7a75'}
+  };
+  const dirParts=d=>{if(!d||d.includes('미확인'))return['U'];const m={'중':'C','북':'N','동':'E','남':'S','서':'W'};const out=[...d].map(ch=>m[ch]).filter(Boolean);return out.length?out:['U'];};
+  const ICON_PATHS={
+    nation:'M3 18h18M4.5 18 3.5 8l5 4 3.5-6 3.5 6 5-4-1 10M12 14.5v.5',
+    city:'M3 21h18M5 21V9h2v2h2V9h2v2h2V9h2v2h2V9h2v12M10 21v-4a2 2 0 0 1 4 0v4',
+    village:'M3 11.5 12 4l9 7.5M5.5 9.5V21h13V9.5M10 21v-5.5h4V21',
+    facility:'M3 21h18M5 21V8l7-4 7 4v13M9 12h6M9 16h6',
+    faith:'M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0',
+    nature:'M12 3l5.5 8h-3.5l4.5 6.5h-13L10 11H6.5zM12 17.5V21',
+    ruin:'M3 21h18M5 21v-9a7 7 0 0 1 12-4.9M19 12v2M19 17.5V21M9 21v-6a3 3 0 0 1 6 0v6',
+    special:'M12 12a1 1 0 0 1 1 1 2 2 0 0 1-2 2 3 3 0 0 1-3-3 4 4 0 0 1 4-4 5 5 0 0 1 5 5 6 6 0 0 1-6 6 7 7 0 0 1-7-7 8 8 0 0 1 8-8'
+  };
+  const KINDS=[['nation','국가·세력'],['city','도시'],['village','마을·영지'],['facility','거점·시설'],['faith','종교'],['nature','자연·섬'],['ruin','유적·던전'],['special','특수 공간']];
+  const kindOf=t=>/특수/.test(t)?'special':/종교/.test(t)?'faith':/유적|던전|무덤/.test(t)?'ruin':/국가|왕국|연맹|세력권|정치권/.test(t)?'nation':/마을|영지|거주지/.test(t)?'village':/도시/.test(t)?'city':/자연|습지|섬·해역/.test(t)?'nature':'facility';
+  const icon=(k,cls='')=>`<svg class="kind-icon ${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICON_PATHS[k]}"/></svg>`;
+  const storyCount=p=>new Set(p.references.map(r=>r.sessionId)).size;
+  const starsOf=n=>n>=30?3:n>=5?2:1;
+  const dirStyle=p=>{const parts=dirParts(p.geography.direction);return `--c1:${DIRS[parts[0]].color};--c2:${DIRS[parts[1]||parts[0]].color}`;};
+  const dirLabel=d=>d.includes('미확인')?'미확인':d;
+  function placeTile(p){
+    const n=storyCount(p),st=starsOf(n),k=kindOf(p.type),unknown=dirParts(p.geography.direction)[0]==='U';
+    const country=p.geography.country.includes('미확인')||p.name.startsWith(p.geography.country.split(' ')[0])?'':p.geography.country;
+    return `<a class="atlas-tile${unknown?' is-unknown':''}" href="${placeLink(p.id)}" style="${dirStyle(p)}" title="${esc(p.description)}">
+      <span class="tile-dir">${esc(dirLabel(p.geography.direction))}</span>
+      <span class="tile-kind" title="${esc(p.type)}">${icon(k)}</span>
+      ${icon(k,'tile-emblem')}
+      <span class="tile-stars" aria-label="${number(n)}개 이야기">${'★'.repeat(st)}<span>${'★'.repeat(3-st)}</span></span>
+      <strong class="tile-name">${esc(p.name)}</strong>
+      <span class="tile-sub">${esc(p.type)}${country?` · ${esc(country)}`:''}</span></a>`;
+  }
   function renderPlaces(){
     const data=window.RP_PLACES;if(!data){$('results').innerHTML='<p>지명 자료를 불러오지 못했습니다.</p>';return;}
-    let page=initialPage();const size=24;
+    const world=data.worldGeography,regionByKey={};
+    for(const r of world.regions){const k=dirParts(r.name==='중앙'?'중부':r.name)[0];regionByKey[k]=r;}
+    const state={view:['dir','country','name'].includes(params.get('view'))?params.get('view'):'dir',dir:DIRS[params.get('dir')]?params.get('dir'):'',kind:KINDS.some(([k])=>k===params.get('kind'))?params.get('kind'):''};
     $('search').value=params.get('q')||'';
-    $('type').insertAdjacentHTML('beforeend',[...new Set(data.places.map(p=>p.type))].sort().map(t=>`<option>${esc(t)}</option>`).join(''));
-    $('type').value=params.get('type')||'';
-    for(const key of ['country','direction']){$(key).insertAdjacentHTML('beforeend',[...new Set(data.places.map(p=>p.geography[key]))].sort((a,b)=>a.localeCompare(b,'ko')).map(v=>`<option>${esc(v)}</option>`).join(''));$(key).value=params.get(key)||'';}
-    const world=data.worldGeography;
-    $('worldGeography').innerHTML=`<h2>대륙의 방위와 지형</h2><div class="terrain-grid">${world.regions.map(r=>`<article><h3>${esc(r.name)}</h3><p>${esc(r.terrain)}</p><div class="chips">${r.places.length?placeChips(r.places):esc(r.politics)}</div></article>`).join('')}</div><p class="muted small">${esc(world.source)} · ${esc(world.note)}</p>`;
     const r=data.report;
     $('placeOverview').innerHTML=stats([[number(data.places.length),'지명·장소'],[number(r.sessions),'배경란 수록 이야기'],[number(r.statuses.reviewed),'무대 편집'],[number(r.statuses.unresolved||0),'장소 미확정']]);
+    $('worldNote').textContent=`${world.source} · ${world.note}`;
+    $('atlasLegend').innerHTML=`<span>색 = 대륙 방위</span><span>${icon('village')} = 장소 유형</span><span><b>★★★</b> 30편 이상 · <b>★★</b> 5편 이상 · <b>★</b> 그 밖의 등장 이야기 수</span>`;
+    const countDir=k=>data.places.filter(p=>dirParts(p.geography.direction).includes(k)).length;
+    const cell=(k,area)=>{const reg=regionByKey[k],d=DIRS[k];
+      return `<button type="button" class="compass-cell" data-dir="${k}" style="grid-area:${area};--c1:${d.color}"><b>${esc(d.name)}</b>${reg?`<small>${esc(reg.terrain)}</small><small class="compass-politics">${esc(reg.politics)}</small>`:'<small>위치가 확인되지 않은 곳</small>'}<span class="compass-count">${number(countDir(k))}</span></button>`;};
+    $('compass').innerHTML=`<button type="button" class="compass-cell compass-all" data-dir="" style="grid-area:all"><b>전체</b><small>모든 방위</small><span class="compass-count">${number(data.places.length)}</span></button>${cell('N','n')}${cell('W','w')}${cell('C','c')}${cell('E','e')}${cell('S','s')}${cell('U','u')}<span class="compass-rose" aria-hidden="true">N<br>✦</span>`;
+    $('kinds').innerHTML=KINDS.map(([k,label])=>`<button type="button" class="kind-btn" data-kind="${k}" title="${esc(label)}">${icon(k)}<span>${esc(label)}</span><small>${number(data.places.filter(p=>kindOf(p.type)===k).length)}</small></button>`).join('');
+    const DIR_ORDER=['중부','북부','동북부','동부','중동부','남부','남서부','서부'];
+    const dirRank=d=>{const i=DIR_ORDER.indexOf(d);return i<0?99:i;};
+    const byWeight=(a,b)=>storyCount(b)-storyCount(a)||a.name.localeCompare(b.name,'ko');
+    const section=(title,sub,list,style='')=>`<section class="atlas-group" style="${style}"><h2 class="atlas-group-head"><span class="group-mark" aria-hidden="true"></span>${esc(title)}<small>${esc(sub)}</small><span class="group-count">${number(list.length)}</span></h2><div class="atlas-grid">${list.map(placeTile).join('')}</div></section>`;
     const render=()=>{
-      const found=data.places.filter(p=>(!$('type').value||p.type===$('type').value)&&['country','direction'].every(k=>!$(k).value||p.geography[k]===$(k).value)&&queryMatches(norm([p.name,p.type,p.region,p.description,...p.aliases,...Object.values(p.geography)].join(' ')),$('search').value)).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
-      const total=Math.max(1,Math.ceil(found.length/size));page=Math.min(page,total-1);
+      const q=$('search').value;
+      const found=data.places.filter(p=>(!state.dir||dirParts(p.geography.direction).includes(state.dir))&&(!state.kind||kindOf(p.type)===state.kind)&&queryMatches(norm([p.name,p.type,p.region,p.description,...p.aliases,...Object.values(p.geography)].join(' ')),q));
       $('resultCount').textContent=`${number(found.length)}개 지명·장소`;
-      $('results').innerHTML=found.slice(page*size,(page+1)*size).map(p=>{
-        const scene=p.references.filter(r=>r.role!=='mention').length;
-        return `<article class="place-card"><p class="eyebrow">${esc(p.type)}</p><h2><a href="${placeLink(p.id)}">${esc(p.name)}</a></h2><p class="place-region">${esc(geographyLine(p))}</p><p class="place-terrain">${esc(p.geography.terrain)}</p><p>${esc(p.description)}</p><p class="muted small">주요 무대 ${number(scene)}개 이야기 · 단순 언급 ${number(p.references.length-scene)}개</p><a class="card-action" href="${placeLink(p.id)}">장소 설명과 근거 읽기 →</a></article>`;
-      }).join('')||'<p class="empty">해당하는 지명이 없습니다.</p>';
-      updateURL({q:$('search').value,type:$('type').value,country:$('country').value,direction:$('direction').value,page:page?String(page+1):''});pager(page,total,n=>{page=n;render();$('resultCount').scrollIntoView();});
+      document.querySelectorAll('.atlas-tabs button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===state.view)));
+      document.querySelectorAll('.compass-cell').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.dir===state.dir)));
+      document.querySelectorAll('.kind-btn').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.kind===state.kind)));
+      let html='';
+      if(!found.length)html='<p class="empty">해당하는 지명이 없습니다.</p>';
+      else if(state.view==='name')html=`<div class="atlas-grid">${[...found].sort((a,b)=>a.name.localeCompare(b.name,'ko')).map(placeTile).join('')}</div>`;
+      else{
+        const key=state.view==='dir'?p=>p.geography.direction:p=>p.geography.country;
+        const groups=new Map();for(const p of found){const k=key(p);if(!groups.has(k))groups.set(k,[]);groups.get(k).push(p);}
+        const unknownLast=k=>k.includes('미확인')?1:0;
+        const keys=[...groups.keys()].sort(state.view==='dir'?(a,b)=>dirRank(a)-dirRank(b):(a,b)=>unknownLast(a)-unknownLast(b)||groups.get(b).length-groups.get(a).length||a.localeCompare(b,'ko'));
+        html=keys.map(k=>{const list=groups.get(k).sort(byWeight);
+          if(state.view==='dir'){const parts=dirParts(k);const reg=parts.length===1?regionByKey[parts[0]]:null;
+            return section(k.includes('미확인')?'대륙 방위 미확인':k,reg?`${reg.terrain} · ${reg.politics}`:parts.length>1?`${parts.map(x=>DIRS[x].name).join('과 ')} 사이`:'원문에서 대륙 방위를 확인하지 못한 곳',list,`--c1:${DIRS[parts[0]].color};--c2:${DIRS[parts[1]||parts[0]].color}`);}
+          return section(k,k.includes('미확인')?'소속을 확인하지 못한 곳':'',list,'--c1:var(--accent);--c2:var(--accent)');}).join('');
+      }
+      $('results').innerHTML=html;$('results').className=`atlas-results view-${state.view}`;
+      updateURL({q,view:state.view==='dir'?'':state.view,dir:state.dir,kind:state.kind,page:''});
     };
-    for(const id of ['search','type','country','direction'])$(id).oninput=()=>{page=0;render();};
-    $('reset').onclick=()=>{for(const id of ['search','type','country','direction'])$(id).value='';page=0;render();};render();
+    document.querySelectorAll('.atlas-tabs button').forEach(b=>b.onclick=()=>{state.view=b.dataset.view;render();});
+    document.querySelectorAll('.compass-cell').forEach(b=>b.onclick=()=>{state.dir=state.dir===b.dataset.dir?'':b.dataset.dir;render();});
+    document.querySelectorAll('.kind-btn').forEach(b=>b.onclick=()=>{state.kind=state.kind===b.dataset.kind?'':b.dataset.kind;render();});
+    $('search').oninput=render;
+    const tabs=document.querySelector('.atlas-tabs'),syncTabs=()=>document.documentElement.style.setProperty('--atlas-tabs-h',tabs.offsetHeight+'px');syncTabs();addEventListener('resize',syncTabs);
+    $('reset').onclick=()=>{$('search').value='';state.dir='';state.kind='';render();};render();
   }
   function renderPlace(){
     const p=window.RP_PLACES?.places.find(p=>p.id===params.get('id'));
     if(!p){$('title').textContent='지명을 찾지 못했습니다';$('placeContent').hidden=true;return;}
-    document.title=`${p.name} · 어설픈 용맹 지명록`;$('title').textContent=p.name;$('placeKind').textContent=p.type;$('placeDescription').textContent=p.description;
+    document.title=`${p.name} · 어설픈 용맹 지명록`;$('title').textContent=p.name;$('placeKind').innerHTML=`<span class="place-kind-badge" style="${dirStyle(p)}">${icon(kindOf(p.type))}${esc(p.type)} · ${esc(p.geography.direction)}</span>`;$('placeDescription').textContent=p.description;
     $('placeFacts').innerHTML=`<div><dt>소속 국가·정치권</dt><dd>${esc(p.geography.country)}</dd></div><div><dt>대륙 방위</dt><dd>${esc(p.geography.direction)}</dd></div><div><dt>현지 위치·상위 지역</dt><dd>${esc(p.region)}</dd></div><div><dt>주변 지형·공간</dt><dd>${esc(p.geography.terrain)}</dd></div>${p.geography.note?`<div><dt>위치 확인 메모</dt><dd>${esc(p.geography.note)}</dd></div>`:''}<div><dt>찾아볼 표기</dt><dd>${esc(p.aliases.join(' · '))}</dd></div><div><dt>해석할 때의 구분</dt><dd>${esc(p.caution)}</dd></div>`;
     $('placeSources').innerHTML=p.evidence.map(e=>`<div><p><a href="${sourceLink(e.sessionId,e.anchor)}">${esc(sessions.get(e.sessionId)?.title)}</a></p>${quote(e,e.sessionId)}</div>`).join('')||(p.sourceIds.length?'<p class="muted">현재 설명은 아래 검토 요약에 근거합니다. 지명과 일치하는 원문 구절은 추가 확인이 필요합니다.</p>':'<p class="muted">2026-10-02 제공된 세계관 기준 설정입니다. 연결할 원문 구절은 아직 확인되지 않았습니다.</p>');
     $('placeEvents').innerHTML=p.sources.map(s=>`<article class="place-event"><h3><a href="${readLink(s.id)}#settingContent">${esc(s.title)}</a></h3><p>${esc(s.summary)}</p><a href="${readLink(s.id)}#summaryBox">검토 요약과 원문 →</a></article>`).join('');
