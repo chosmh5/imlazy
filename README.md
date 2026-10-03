@@ -29,9 +29,9 @@
 
 ## 캐릭터 시트
 
-캐릭터 일람에서 인물을 선택하면 소개·평가·성향표와 참가 기록이 함께 열립니다. 현재 267개 인물·기록 항목의 시트를 수록합니다. 성향은 근거 대화를 바탕으로 한 편집 해석입니다. 자료가 부족한 축은 점수 없이 표시합니다. 추가된 서술 분석은 확인된 정보·평가·공동 등장·이야기 링크를 제공하며 성향 점수를 자동으로 만들지 않습니다. 단일·소수 장면은 장면 기반 소개·평가로 표시하고 장면 밖 논평은 인물과 구분합니다. 기록이 적어 지속적인 성격을 분석하기 어려운 인물은 '분석할 기록이 부족합니다' 안내와 확인된 정보·등장 이야기만 수록하며 점수표를 만들지 않습니다.
+캐릭터 일람에서 인물을 선택하면 소개·평가·성향표와 참가 기록이 함께 열립니다. 현재 267개 인물·기록 항목의 시트를 수록합니다. 성향은 근거 대화를 바탕으로 한 편집 해석입니다. 자료가 부족한 축은 점수 없이 표시합니다. 모든 인물 시트에는 여섯 성향의 육각형과 해석 버튼이 표시됩니다. 추가된 서술 분석의 점수는 인용한 장면을 대조해 수동으로 작성하며 등장 횟수로 생성하지 않습니다. 근거가 부족한 축은 점수·점·면을 비워 두고, 여섯 축이 모두 평가된 경우에만 면으로 연결합니다. 단일·소수 장면은 장면 기반 소개·평가로 표시하고 장면 밖 논평에는 인물 성향표를 붙이지 않습니다. 기록이 부족한 인물도 여섯 축은 표시하되 확인되지 않은 성향에 점수를 부여하지 않습니다.
 
-시트 원고는 분석 작업 폴더의 정리도구/site/character-sheets.mjs, character-sheets-requested.mjs, character-sheets-selected*.mjs, character-sheets-audrey.mjs, character-readings-completed.json, character-sheets-completed.json에서 관리하며, 사이트를 다시 생성해도 유지됩니다.
+시트 원고는 분석 작업 폴더의 정리도구/site/character-sheets.mjs, character-sheets-requested.mjs, character-sheets-selected*.mjs, character-sheets-audrey.mjs, character-readings-completed.json, character-traits-completed.json, character-sheets-completed.json에서 관리하며, 사이트를 다시 생성해도 유지됩니다.
 
 ## 페이지 이동과 이어 읽기
 
