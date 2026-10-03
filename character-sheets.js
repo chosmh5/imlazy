@@ -17,7 +17,8 @@ window.CharacterSheets=(()=>{
   };
   const cardHeading=c=>{
     const job=classFor(c),icon=classIcon(job);
-    return `<div class="character-card-heading${icon?' has-class':''}"><h2>${esc(c.name)}</h2><div class="character-class${job?'':' is-unknown'}"><span>${job?esc(classLabel(job)):'직업 미확인'}</span>${icon}</div></div>`;
+    const portrait=window.CharacterPortraits?.characterHTML(c.id,'card')||'';
+    return `<div class="character-card-heading${icon?' has-class':''}${portrait?' has-portrait':''}">${portrait}<div class="character-card-identity"><h2>${esc(c.name)}</h2><div class="character-class${job?'':' is-unknown'}"><span>${job?esc(classLabel(job)):'직업 미확인'}</span>${icon}</div></div></div>`;
   };
   const sourceLink=(id,label)=>{const s=stories.get(id);return s?`<a class="source-link" href="read.html?id=${encodeURIComponent(id)}">${esc(label||s.title)} <span aria-hidden="true">↗</span></a>`:'';};
   const readyCount=Object.keys(data.entries).length;
@@ -62,7 +63,8 @@ window.CharacterSheets=(()=>{
     const directProfiles=c.directProfiles||c.profiles,contextProfiles=c.contextProfiles||[];
     const metadata=`<details class="profile-aliases"><summary>로그의 프로필 표기 보기</summary><p class="muted">대화에 표시된 프로필을 역할별로 나눈 목록입니다. 같은 캐릭터나 같은 오너라는 뜻은 아닙니다. 오너 연결은 위의 ‘같은 오너의 캐릭터’에서 확인할 수 있습니다.</p><p><strong>캐릭터 발화에 사용된 프로필</strong></p><div class="trait-tags direct-profiles">${directProfiles.map(p=>`<span>${esc(p)}</span>`).join('')||'<span>단독 발화 프로필 미확인</span>'}</div>${contextProfiles.length?`<p><strong>진행·회상·복수 인물 서술에 사용된 프로필</strong></p><p class="muted small">이 인물이 등장하는 장면을 진행하거나 여러 인물을 함께 서술한 프로필입니다.</p><div class="trait-tags context-profiles">${contextProfiles.map(p=>`<span>${esc(p)}</span>`).join('')}</div>`:''}</details>`;
     const job=classFor(c),icon=classIcon(job);
-    const heading=`<div class="sheet-heading"><div class="character-mark${icon?' has-class':''}" aria-hidden="true">${icon||esc(c.name.trim().charAt(0))}</div><div><p class="eyebrow">CHARACTER SHEET</p><h2 id="sheetTitle">${s?.recordLabel?'기록 항목':'인물 시트'}</h2>${s?.recordLabel?'':`<p class="character-class">${job?esc(classLabel(job)):'직업 미확인'}</p>`}<span class="sheet-status ${s?'ready':'pending'}">${sheetLabel(s)}</span></div></div>`;
+    const portrait=s?.recordLabel?'':window.CharacterPortraits?.characterHTML(c.id,'profile')||'';
+    const heading=`<div class="sheet-heading">${portrait||`<div class="character-mark${icon?' has-class':''}" aria-hidden="true">${icon||esc(c.name.trim().charAt(0))}</div>`}<div><p class="eyebrow">CHARACTER SHEET</p><h2 id="sheetTitle">${s?.recordLabel?'기록 항목':'인물 시트'}</h2>${s?.recordLabel?'':`<p class="character-class">${job?esc(classLabel(job)):'직업 미확인'}${portrait?icon:''}</p>`}<span class="sheet-status ${s?'ready':'pending'}">${sheetLabel(s)}</span></div></div>`;
     if(!s){
       host.innerHTML=`${heading}<div class="pending-sheet"><h3>이 인물의 이야기를 살펴보고 있어요.</h3><p>프로필 정보, 한줄 평가, 핵심 성향과 성향별 근거를 차례로 추가합니다.</p><div class="pending-fields"><span>캐릭터 정보 · 업데이트 중</span><span>인물 평가 · 업데이트 중</span><span>성향 육각형 · 업데이트 중</span></div><a class="button-link" href="#characterContent">참가한 대화·세션 보기 ↓</a></div>${metadata}`;
       return;
