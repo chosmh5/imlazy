@@ -11,7 +11,9 @@ window.CharacterPortraits=(()=>{
     return entries[canonical]||defaults[canonical]||null;
   };
   const portraitForMessage=message=>{
-    if(message.type!=='dialogue'||message.identity==='unresolved'||message.characters.length!==1||/[\/·]|진행|서술|NPC|회상|논평|메타/.test(message.name))return null;
+    if(message.type!=='dialogue'||message.identity==='unresolved')return null;
+    if(message.portraitCharacter&&message.identity==='reviewed'&&message.characters.length===1&&message.characters[0]===message.portraitCharacter)return portraitForCharacter(message.portraitCharacter);
+    if(message.characters.length!==1||/[\/·]|진행|서술|NPC|회상|논평|메타/.test(message.name))return null;
     return portraitForCharacter(message.characters[0]);
   };
   const html=(portrait,variant='speaker')=>{
