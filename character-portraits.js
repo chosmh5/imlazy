@@ -4,6 +4,7 @@ window.CharacterPortraits=(()=>{
   const defaults=window.RP_CHARACTER_PORTRAITS?.defaults||{};
   const defaultImage=window.RP_CHARACTER_PORTRAITS?.defaultImage||'';
   const redirects=window.RP_CATALOG?.characterRedirects||{};
+  const npc=window.RP_CHARACTER_CLASSES?.npc;
   const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const portraitForCharacter=id=>{
     const targets=redirects[id];
@@ -26,7 +27,11 @@ window.CharacterPortraits=(()=>{
   const characterHTML=(id,variant='profile')=>html(portraitForCharacter(id),variant);
   const messageHTML=message=>{
     const portrait=portraitForMessage(message);
-    return html(portrait);
+    if(!portrait)return '';
+    const targets=redirects[message.characters[0]];
+    const id=targets?.length===1?targets[0]:message.characters[0];
+    const role=Object.hasOwn(npc?.characters||{},id)?`<span class="speaker-role"><span class="npc-icon" aria-hidden="true">${npc.svg}</span><span>NPC</span></span>`:'';
+    return html(portrait)+role;
   };
   return {portraitForCharacter,portraitForMessage,characterHTML,messageHTML};
 })();
