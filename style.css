@@ -292,6 +292,10 @@ summary{color:var(--accent);cursor:pointer}
 .message.highlighted{margin:0 calc(-1 * var(--gutter));padding-left:var(--gutter);padding-right:var(--gutter);background:var(--surface)}
 .message:target{background:var(--accent-soft)}
 .message header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.message-speaker{display:flex;align-items:center;gap:10px;min-width:0;max-width:100%}
+.message-speaker .speaker{min-width:0;overflow-wrap:anywhere}
+.speaker-portrait{display:block;flex:none;width:40px;height:40px;object-fit:cover;border-radius:8px;border:1px solid var(--line-strong);background:var(--surface)}
+.message header:has(.speaker-portrait){align-items:center}
 .speaker{font-size:13px;font-weight:600;letter-spacing:.02em;color:var(--accent)}
 .message time{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
 .message .body{margin:8px 0 10px;font-family:var(--serif);font-size:18px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere}
