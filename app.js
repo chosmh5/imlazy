@@ -44,7 +44,7 @@ function pager(page,total,onChange){
 }
 function stats(items){return items.map(([value,label])=>`<div class="stat"><strong>${esc(value)}</strong><span>${esc(label)}</span></div>`).join('');}
 function storyCard(s,character=''){
-  return `<article class="story-card"><div class="story-meta"><span class="tag ${s.story}">${esc(s.storyLabel)}</span><span>${esc(day(s.start))}${day(s.start)!==day(s.end)?' ~ '+esc(day(s.end)):''}</span><span>채팅방 ${esc(s.rooms.join(' · '))}</span><span>${number(s.count)}개 대화</span>${s.kind==='fragment'?'<span class="tag unknown">일부 수록</span>':''}</div><h3><a class="story-title" href="${readLink(s.id,character)}">${esc(s.title)}</a></h3>${s.setting?`<p class="story-setting"><span>${s.setting.status==='summary'?'장소 단서':'주요 무대'}</span> ${esc(s.setting.label)}${s.setting.tags.length?`<small>${esc(s.setting.tags.join(' · '))}</small>`:''}</p>`:''}<p class="snippet">${esc(s.summary)}</p>${s.setting?.scenePlaceIds.length?`<div class="chips">${placeChips(s.setting.scenePlaceIds)}</div>`:''}<div class="chips">${chips(s.characters,character)||'<span class="muted">연결된 인물 정보 없음</span>'}</div></article>`;
+  return `<article class="story-card"><div class="story-meta"><span class="tag ${s.story}">${esc(s.storyLabel)}</span><span>${esc(day(s.start))}${day(s.start)!==day(s.end)?' ~ '+esc(day(s.end)):''}</span><span>채팅방 ${esc(s.rooms.join(' · '))}</span><span>${number(s.count)}개 대화</span>${s.kind==='fragment'?'<span class="tag unknown">일부 수록</span>':''}</div><h3><a class="story-title" href="${readLink(s.id,character)}">${esc(s.title)}</a></h3>${s.setting?`<p class="story-setting"><span>${s.setting.status==='summary'?'장소 단서':'주요 무대'}</span> ${esc(s.setting.label)}${s.setting.tags.length?`<small>${esc(s.setting.tags.join(' · '))}</small>`:''}</p>`:''}<p class="snippet">${esc(s.summary)}</p>${character?window.Illustrations?.storyPreviewHTML(s.id,character)||'':''}${s.setting?.scenePlaceIds.length?`<div class="chips">${placeChips(s.setting.scenePlaceIds)}</div>`:''}<div class="chips">${chips(s.characters,character)||'<span class="muted">연결된 인물 정보 없음</span>'}</div></article>`;
 }
 const searchable=new Map(catalog.sessions.map(s=>[s.id,norm([s.title,s.summary,s.setting?.label,...(s.setting?.namedPlaceIds||[]).flatMap(id=>{const p=places.get(id);return p?[p.name,...p.aliases]:[];}),...s.profiles,...s.characters.flatMap(id=>{const c=people.get(id);return c?[c.name,...c.aliases]:[];})].join(' '))]));
 const queryMatches=(text,q)=>norm(q).split(' ').filter(Boolean).every(word=>text.includes(word));
@@ -53,13 +53,13 @@ function setupStories(base,character=''){
   let page=initialPage();const size=30;
   if($('place'))$('place').insertAdjacentHTML('beforeend',[...places.values()].sort((a,b)=>a.name.localeCompare(b.name,'ko')).map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join(''));
   const fields=['search','story','room','place','placeScope','with','from','to','sort'].filter(id=>$(id));
-  const defaults={search:'',story:'',room:'',place:'',placeScope:'scene',with:'',from:'',to:'',sort:'oldest'};
-  for(const id of fields){const value=params.get(id==='search'?'q':id);if(value!==null)$(id).value=value;if($(id).value==='')$(id).value=defaults[id];}
+  const defaults={search:'',story:'',room:'',place:'',placeScope:'scene',with:'',from:'',to:'',sort:'newest'};
+  for(const id of fields){const value=params.get(id==='search'?'q':id);$(id).value=value??defaults[id];if($(id).value==='')$(id).value=defaults[id];}
   const render=()=>{
     let found=base.filter(s=>(!$('story').value||s.story===$('story').value)&&(!$('room')?.value||s.rooms.includes($('room').value))&&(!$('from').value||day(s.end)>=$('from').value)&&(!$('to').value||day(s.start)<=$('to').value)&&queryMatches(searchable.get(s.id),$('search').value));
     if($('with')?.value)found=found.filter(s=>s.characters.includes($('with').value));
     if($('place')?.value)found=found.filter(s=>(s.setting?.[$('placeScope')?.value==='all'?'namedPlaceIds':'scenePlaceIds']||[]).includes($('place').value));
-    if($('sort').value==='newest')found=[...found].reverse();
+    found=[...found].sort((a,b)=>($('sort').value==='oldest'?1:-1)*(a.start.localeCompare(b.start)||a.id.localeCompare(b.id)));
     const count=Math.max(1,Math.ceil(found.length/size));page=Math.min(page,count-1);
     $('resultCount').textContent=`${number(found.length)}개 이야기${character?' · 이 인물의 참가·등장 기록':''}`;
     $('results').innerHTML=found.slice(page*size,(page+1)*size).map(s=>storyCard(s,character)).join('')||'<p class="empty">검색 결과가 없습니다. 검색어나 기간을 바꿔 보세요.</p>';
