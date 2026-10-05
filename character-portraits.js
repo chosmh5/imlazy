@@ -6,16 +6,18 @@ window.CharacterPortraits=(()=>{
   const redirects=window.RP_CATALOG?.characterRedirects||{};
   const npc=window.RP_CHARACTER_CLASSES?.npc;
   const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const portraitForCharacter=id=>{
+  const portraitForCharacter=(id,time)=>{
     const targets=redirects[id];
     const canonical=targets?.length===1?targets[0]:id;
-    return entries[canonical]||defaults[canonical]||null;
+    const portrait=entries[canonical]||defaults[canonical]||null;
+    const timestamp=Date.parse(time);
+    return (Number.isFinite(timestamp)&&portrait?.variants?.find(variant=>timestamp<=Date.parse(variant.until)))||portrait;
   };
   const portraitForMessage=message=>{
     if(message.type!=='dialogue'||message.identity==='unresolved')return null;
-    if(message.portraitCharacter&&message.identity==='reviewed'&&message.characters.length===1&&message.characters[0]===message.portraitCharacter)return portraitForCharacter(message.portraitCharacter);
+    if(message.portraitCharacter&&message.identity==='reviewed'&&message.characters.length===1&&message.characters[0]===message.portraitCharacter)return portraitForCharacter(message.portraitCharacter,message.time);
     if(message.characters.length!==1||/[\/·]|진행|서술|NPC|회상|논평|메타/.test(message.name))return null;
-    return portraitForCharacter(message.characters[0]);
+    return portraitForCharacter(message.characters[0],message.time);
   };
   const html=(portrait,variant='speaker')=>{
     if(!portrait)return '';
