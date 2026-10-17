@@ -20,22 +20,25 @@
   const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const anchor=entry=>'illustration-'+entry.id;
   const styleName=id=>styleMap.get(id)?.name||styleMap.get(defaultStyle)?.name||'현대 판타지풍';
-  const availableStyles=entry=>[defaultStyle,...styles.filter(style=>style.id!==defaultStyle&&entry.variants?.some(variant=>variant.style===style.id)).map(style=>style.id)];
+  const baseStyle=entry=>styleMap.has(entry.style)?entry.style:defaultStyle;
+  const availableStyles=entry=>[baseStyle(entry),...styles.filter(style=>style.id!==baseStyle(entry)&&entry.variants?.some(variant=>variant.style===style.id)).map(style=>style.id)];
   const resolveImage=(entry,requested=requestedForEntry(entry))=>{
+    const originalStyle=baseStyle(entry);
     const wanted=requested==='other'?'other':styleMap.has(requested)?requested:defaultStyle;
-    const variant=wanted==='other'?(entry.variants?.find(item=>item.representative)||entry.variants?.[0]):wanted===defaultStyle?null:entry.variants?.find(item=>item.style===wanted);
+    const variant=wanted==='other'?(entry.variants?.find(item=>item.representative)||entry.variants?.[0]):wanted===originalStyle?null:entry.variants?.find(item=>item.style===wanted);
     return {image:variant?.image||entry.image,thumbnail:variant?.thumbnail||entry.thumbnail,
       width:variant?.width||entry.width,height:variant?.height||entry.height,
       thumbnailWidth:variant?.thumbnailWidth||Math.min(768,entry.width),
       alt:variant?(variant.alt||`${entry.alt} — ${styleName(variant.style)}`):entry.alt,
-      style:variant?variant.style:defaultStyle,requestedStyle:wanted,fallback:wanted!==defaultStyle&&!variant};
+      style:variant?variant.style:originalStyle,requestedStyle:wanted,
+      fallback:requested!=='fantasy'&&wanted!=='other'&&wanted!==originalStyle&&!variant||wanted==='other'&&originalStyle===defaultStyle&&!variant};
   };
   const sceneLink=(entry,requested=preferredView,character='')=>`read.html?id=${encodeURIComponent(entry.session)}${character?'&character='+encodeURIComponent(character):''}&view=${validView(requested)?requested:preferredView}${styleMap.has(requested)?'&style='+encodeURIComponent(requested):''}#${anchor(entry)}`;
   const imageHTML=(entry,{style=requestedForEntry(entry),sizes='(max-width: 650px) 100vw, 720px',eager=false}={})=>{
     const asset=resolveImage(entry,style);
     return `<img src="${esc(asset.image)}" srcset="${esc(asset.thumbnail)} ${asset.thumbnailWidth}w, ${esc(asset.image)} ${asset.width}w" sizes="${sizes}" width="${asset.width}" height="${asset.height}" alt="${esc(asset.alt)}" data-art-style="${esc(asset.style)}" loading="${eager?'eager':'lazy'}" decoding="async"${eager?' fetchpriority="high"':''}>`;
   };
-  const styleNote=asset=>`<p class="illustration-style-note${asset.fallback?' is-fallback':''}">${esc(styleName(asset.style))}${asset.fallback?' · 다른 화풍이 없어 판타지풍으로 표시합니다.':''}</p>`;
+  const styleNote=asset=>`<p class="illustration-style-note${asset.fallback?' is-fallback':''}">${esc(styleName(asset.style))}${asset.fallback?' · 요청한 화풍이 없어 이 이미지의 원래 화풍으로 표시합니다.':''}</p>`;
   const bySession=new Map();
   for(const entry of entries){if(!bySession.has(entry.session))bySession.set(entry.session,[]);bySession.get(entry.session).push(entry);}
   window.Illustrations={
@@ -78,10 +81,10 @@
   };
   const render=()=>{
     const query=norm($('artSearch').value).split(/\s+/).filter(Boolean),kind=$('artKind').value,sort=$('artSort').value;
-    const selected=entries.filter(entry=>(!$('artVariantsOnly').checked||availableStyles(entry).length>1)&&(!kind||entry.story===kind)&&query.every(word=>norm([entry.title,entry.caption,entry.sessionTitle,...entry.characters].join(' ')).includes(word))).sort((a,b)=>sort==='random'?randomRank.get(a.id)-randomRank.get(b.id):(sort==='oldest'?1:-1)*(a.start.localeCompare(b.start)||a.id.localeCompare(b.id)));
+    const selected=entries.filter(entry=>(!$('artVariantsOnly').checked||baseStyle(entry)!==defaultStyle||availableStyles(entry).length>1)&&(!kind||entry.story===kind)&&query.every(word=>norm([entry.title,entry.caption,entry.sessionTitle,...entry.characters].join(' ')).includes(word))).sort((a,b)=>sort==='random'?randomRank.get(a.id)-randomRank.get(b.id):(sort==='oldest'?1:-1)*(a.start.localeCompare(b.start)||a.id.localeCompare(b.id)));
     $('artCount').textContent=`${selected.length}장의 삽화 · ${sort==='random'?'랜덤 순':sort==='oldest'?'오래된 세션 순':'최근 세션 순'}`;
     const matching=selected.filter(entry=>resolveImage(entry,'other').style!==defaultStyle).length;
-    $('artStyleSummary').textContent=preferredView==='fantasy'?'판타지풍으로 표시합니다.':`다른 화풍의 대표 이미지 ${matching}장 · 나머지 ${selected.length-matching}장은 판타지풍으로 표시합니다.`;
+    $('artStyleSummary').textContent=preferredView==='fantasy'?'현대 판타지풍과 각 장면의 고유 작풍을 표시합니다.':`다른 화풍의 이미지 ${matching}장 · 나머지 ${selected.length-matching}장은 현대 판타지풍으로 표시합니다.`;
     $('illustrationGallery').innerHTML=selected.map((entry,index)=>`<article id="${anchor(entry)}" data-illustration="${entry.id}" class="illustration-card${index===0?' illustration-featured':''}">${cardBody(entry,index)}</article>`).join('')||'<p class="empty">조건에 맞는 삽화가 없습니다.</p>';
     try{const url=new URL(location.href);url.searchParams.delete('style');for(const [key,value]of [['q',$('artSearch').value],['kind',kind],['sort',sort==='random'?'':sort],['view',preferredView],['variants',$('artVariantsOnly').checked?'1':'']]){if(value)url.searchParams.set(key,value);else url.searchParams.delete(key);}history.replaceState(null,'',url);}catch{}
   };
