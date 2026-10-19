@@ -68,3 +68,12 @@ places.html에서 135개 지명·장소를 찾아 유형·국가·방위·현지
 장소 필터의 기본값은 주요 무대입니다. 단순 언급 포함을 고르면 회상·계획·출신·소문으로만 나온 지명도 찾을 수 있습니다. 플레이 날짜와 채팅방(RP·RP II·RP III·Plane)은 이야기 속 시간·장소와 구분합니다. 별도 세션 준비 폴더의 가칭 설정은 과거 로그의 확정 지리에 섞지 않았습니다.
 
 유지 원고: site/place-definitions.mjs, site/geography.mjs, site/session-settings-reviewed.json, site/session-settings-additional.mjs, site/settings.mjs. 본문은 기존 수록 원문을 그대로 보존합니다.
+
+## 1주년 어워드
+
+[awards.html](awards.html)에 2026-10-18 밤의 「어설픈 용맹 1주년 어워드」를 별도 수록합니다. RP(시상식 단상)·RP II·RP III·Plane(관람석 테이블) 네 방의 2026-10-18 20:28 ~ 10-19 01:30 원문을 분 단위로 나란히 놓고, 시상 순서별 요약·수상 결과·방을 넘나든 순간·인물별 동선과 발언을 함께 보여 줍니다.
+
+- awards.html, awards.css, awards.js: 페이지와 화면 구성
+- data/awards-2026-10-18.js: 원문 6,302개 메시지(방·시각·인물·원래 프로필), 구간 요약, 수상 결과
+
+이 파일들은 build-site.mjs가 생성하지 않는 별도 원고입니다. 사이트를 다시 생성한 뒤에도 그대로 두고, 각 페이지 메뉴와 index.html 상단의 ‘1주년 어워드’ 링크는 생성 템플릿에도 같은 줄을 추가해야 유지됩니다. 인물은 프로필명이 아니라 본문 서술로 판정했으며, 판정 기준은 페이지 맨 아래 ‘정리 기준’에 적었습니다.
