@@ -73,7 +73,9 @@
 .aw-stage .st-say .st-k{color:var(--ink);font-weight:600;font-size:13px}
 .aw-stage .st-say .st-v{font-family:var(--serif);font-size:15px}
 .aw-stage q{quotes:"“" "”" "‘" "’"}
-.aw-stage .st-note .st-v{color:var(--muted)}
+.aw-stage .st-note .st-k:empty{display:none}
+.aw-stage .st-note .st-k:empty+.st-v{grid-column:1/-1}
+@media(max-width:760px){.aw-col .aw-stage li{grid-template-columns:4.4em minmax(0,1fr)}}
 .aw-stage .st-tag{padding:6px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .aw-stage .st-tag .st-k{color:var(--rc);font-weight:600;letter-spacing:.04em}
 .aw-stage .st-tag .st-v{font-weight:600}
@@ -84,7 +86,8 @@
 .aw-moment header{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:0 0 4px}
 .aw-moment strong{font-size:14px}
 .aw-moment time{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
-.aw-moment p{margin:0;font-size:13.5px;line-height:1.8;color:var(--ink)}
+.aw-moment p{margin:0;max-width:62em;font-size:13.5px;line-height:1.8;color:var(--ink)}
+.aw-col li time.tm,.aw-moment p time.tm{font-size:.9em;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:.01em}
 .aw-moment .aw-route{display:inline-flex;gap:4px;align-items:center}
 .aw-seg-actions{margin:18px 0 0}
 .aw-seg-actions button{font-size:13px}
@@ -162,8 +165,11 @@
 .aw-trail li{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border:1px solid var(--line-strong)}
 .aw-trail li time{color:var(--muted);font-variant-numeric:tabular-nums}
 .aw-trail .arrow{border:0;padding:0;color:var(--muted)}
-.aw-plog{max-height:520px;overflow:auto;border-top:1px solid var(--line);padding:0 4px 0 0}
-.aw-plog .aw-msg{padding:12px 0;border-bottom:1px solid var(--line)}
+.aw-plog{max-height:520px;overflow:auto;border-top:1px solid var(--line);padding:0 4px 12px 0}
+.aw-plog .aw-msg{padding:12px 0 0;border-top:1px solid var(--line)}
+.aw-plog .aw-msg:first-child{border-top:0}
+.aw-plog .aw-msg.cont{border-top:0;padding-top:6px;margin-top:0}
+.aw-plog .aw-msg .who{display:none}
 .aw-plog .aw-msg .meta{display:flex;align-items:center;gap:10px;margin:0 0 4px}
 .aw-plog .aw-msg .meta time{font-size:12px;font-weight:600;color:var(--accent);font-variant-numeric:tabular-nums}
 .aw-plog .aw-msg .meta .room-tag{font-size:11px}

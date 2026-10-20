@@ -128,6 +128,7 @@ function logHTML(from,to){
 
 // 단상 요약: {t,text} 진행 · {who,text} 발언 · {tag,text} 결과
 const quotes=t=>esc(t).replace(/“([^”]*)”/g,'<q>$1</q>');
+const times=t=>esc(t).replace(/(?<![\d:])(\d{2}:\d{2}(?:[~–]\d{2}(?::\d{2})?)?)(?![\d:])/g,'<time class="tm">$1</time>');
 const stageHTML=items=>`<ol class="aw-stage">${(Array.isArray(items)?items:[{text:items}]).map(it=>{
   if(it.tag)return `<li class="st-tag"><span class="st-k">${esc(it.tag)}</span><span class="st-v">${quotes(it.text)}</span></li>`;
   if(it.who)return `<li class="st-say"><span class="st-k">${esc(it.who)}</span><span class="st-v">${quotes(it.text)}</span></li>`;
@@ -140,9 +141,9 @@ $('awSegments').innerHTML=A.segments.map((s,i)=>{
   const cols=rooms.map((r,ri)=>{
     if(ri===0)return `<div class="aw-col" data-room="0">${roomTag(0)}${stageHTML(s.stage)}</div>`;
     const notes=s.rooms[String(ri)]||[];
-    return `<div class="aw-col${notes.length?'':' empty-col'}" data-room="${ri}">${roomTag(ri)}${notes.length?`<ul>${notes.map(n=>`<li>${esc(n)}</li>`).join('')}</ul>`:'<p>이 시간에 기록된 장면이 거의 없습니다.</p>'}</div>`;
+    return `<div class="aw-col${notes.length?'':' empty-col'}" data-room="${ri}">${roomTag(ri)}${notes.length?`<ul>${notes.map(n=>`<li>${times(n)}</li>`).join('')}</ul>`:'<p>이 시간에 기록된 장면이 거의 없습니다.</p>'}</div>`;
   }).join('');
-  const moms=(momentsBySeg.get(s.id)||[]).map(mo=>`<aside class="aw-moment"><header><strong>↔ ${esc(mo.title)}</strong><time>${hhmm(mo.t)}</time><span class="aw-route">${mo.rooms.map(r=>roomTag(r)).join('<span aria-hidden="true">·</span>')}</span></header><p>${esc(mo.text)}</p></aside>`).join('');
+  const moms=(momentsBySeg.get(s.id)||[]).map(mo=>`<aside class="aw-moment"><header><strong>↔ ${esc(mo.title)}</strong><time>${hhmm(mo.t)}</time><span class="aw-route">${mo.rooms.map(r=>roomTag(r)).join('<span aria-hidden="true">·</span>')}</span></header><p>${times(mo.text)}</p></aside>`).join('');
   const total=M.filter(x=>x.m>=s.from&&x.m<=s.to).length;
   return `<article class="aw-seg" id="seg-${esc(s.id)}"><div class="aw-seg-head"><p class="eyebrow">${String(i+1).padStart(2,'0')} · ${hhmm(s.from)}–${hhmm(s.to)}</p><h3>${esc(s.title)}</h3></div>${s.winners.length?`<div class="aw-seg-winners aw-win">${winnersHTML(s)}</div>`:''}<div class="aw-cols">${cols}</div>${moms}<div class="aw-seg-actions"><button type="button" data-log="${esc(s.id)}" aria-expanded="false">이 시간의 원문 나란히 보기 (${num(total)})</button></div><div class="aw-seg-log" id="log-${esc(s.id)}" hidden></div></article>`;
 }).join('');
@@ -194,7 +195,7 @@ $('awPeople').addEventListener('toggle',e=>{
   const per=rooms.map((r,i)=>[i,spoken.filter(x=>x.p===p&&x.room===i).length]).filter(v=>v[1]);
   const lines=M.filter(x=>x.p===p&&x.type!==TYPE.SYS);
   const person=people[p];
-  d.querySelector('.aw-pbody').innerHTML=`<div class="aw-pfacts">${per.map(([r,n])=>`<span>${roomTag(r)} ${n}개</span>`).join('')}${aw.length?`<span>🏆 ${aw.map(esc).join(' / ')}</span>`:''}</div><ol class="aw-trail" aria-label="머문 방 순서">${iv.map(([a,b,r],k)=>`${k?'<li class="arrow" aria-hidden="true">→</li>':''}<li>${roomTag(r)}<time>${hhmm(a)}${b>a?'–'+hhmm(b):''}</time></li>`).join('')}</ol><div class="aw-plog">${lines.map(x=>msgHTML(x,true)).join('')}</div><p class="aw-plink"><button type="button" data-focus="${p}">원문 나란히 보기에서 이 인물 강조</button>${person.id?` · <a href="${charLink(person.id)}">기록실 인물 페이지 ↗</a>`:''}</p>`;
+  d.querySelector('.aw-pbody').innerHTML=`<div class="aw-pfacts">${per.map(([r,n])=>`<span>${roomTag(r)} ${n}개</span>`).join('')}${aw.length?`<span>🏆 ${aw.map(esc).join(' / ')}</span>`:''}</div><ol class="aw-trail" aria-label="머문 방 순서">${iv.map(([a,b,r],k)=>`${k?'<li class="arrow" aria-hidden="true">→</li>':''}<li>${roomTag(r)}<time>${hhmm(a)}${b>a?'–'+hhmm(b):''}</time></li>`).join('')}</ol><div class="aw-plog">${lines.map((x,k)=>{const prev=lines[k-1];return prev&&prev.m===x.m&&prev.room===x.room?msgHTML(x,false,true):msgHTML(x,true);}).join('')}</div><p class="aw-plink"><button type="button" data-focus="${p}">원문 나란히 보기에서 이 인물 강조</button>${person.id?` · <a href="${charLink(person.id)}">기록실 인물 페이지 ↗</a>`:''}</p>`;
 },true);
 $('awPeople').addEventListener('click',e=>{const b=e.target.closest('[data-focus]');if(!b)return;opt.focus=Number(b.dataset.focus);focusSel.value=String(opt.focus);rerender();$('timeline').scrollIntoView({behavior:'smooth',block:'start'});});
 const filterPeople=()=>{
