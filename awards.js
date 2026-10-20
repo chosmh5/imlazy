@@ -46,7 +46,7 @@ $('awRooms').innerHTML=rooms.map((r,i)=>{
 }).join('');
 
 // 시상 결과
-const winnersHTML=s=>s.winners.map(w=>`<span class="aw-win-row">${w.label?`<span class="aw-win-label">${esc(w.label)}</span>`:''}${w.people.map(p=>plink(p)).join('')}${w.note?`<span class="aw-win-note">${esc(w.note)}</span>`:''}</span>`).join('');
+const winnersHTML=(s,votes=true)=>s.winners.map(w=>{const label=votes?w.label:String(w.label||'').replace(/\s*·\s*\d+표$/,'');return `<span class="aw-win-row">${label?`<span class="aw-win-label">${esc(label)}</span>`:''}${w.people.map(p=>plink(p)).join('')}${w.note?`<span class="aw-win-note">${esc(w.note)}</span>`:''}</span>`;}).join('');
 $('awResults').innerHTML=A.segments.filter(s=>s.winners.length).map(s=>`<div class="aw-result"><time>${hhmm(s.from)}</time><h3><a href="#seg-${esc(s.id)}">${esc(s.title)}</a></h3><div class="aw-win">${winnersHTML(s)}</div></div>`).join('');
 
 // 개요 그래프
@@ -145,7 +145,7 @@ $('awSegments').innerHTML=A.segments.map((s,i)=>{
   }).join('');
   const moms=(momentsBySeg.get(s.id)||[]).map(mo=>`<aside class="aw-moment"><header><strong>↔ ${esc(mo.title)}</strong><time>${hhmm(mo.t)}</time><span class="aw-route">${mo.rooms.map(r=>roomTag(r)).join('<span aria-hidden="true">·</span>')}</span></header><p>${times(mo.text)}</p></aside>`).join('');
   const total=M.filter(x=>x.m>=s.from&&x.m<=s.to).length;
-  return `<article class="aw-seg" id="seg-${esc(s.id)}"><div class="aw-seg-head"><p class="eyebrow">${String(i+1).padStart(2,'0')} · ${hhmm(s.from)}–${hhmm(s.to)}</p><h3>${esc(s.title)}</h3></div>${s.winners.length?`<div class="aw-seg-winners aw-win">${winnersHTML(s)}</div>`:''}<div class="aw-cols">${cols}</div>${moms}<div class="aw-seg-actions"><button type="button" data-log="${esc(s.id)}" aria-expanded="false">이 시간의 원문 나란히 보기 (${num(total)})</button></div><div class="aw-seg-log" id="log-${esc(s.id)}" hidden></div></article>`;
+  return `<article class="aw-seg" id="seg-${esc(s.id)}"><div class="aw-seg-head"><p class="eyebrow">${String(i+1).padStart(2,'0')} · ${hhmm(s.from)}–${hhmm(s.to)}</p><h3>${esc(s.title)}</h3></div>${s.winners.length?`<div class="aw-seg-winners aw-win">${winnersHTML(s,false)}</div>`:''}<div class="aw-cols">${cols}</div>${moms}<div class="aw-seg-actions"><button type="button" data-log="${esc(s.id)}" aria-expanded="false">이 시간의 원문 나란히 보기 (${num(total)})</button></div><div class="aw-seg-log" id="log-${esc(s.id)}" hidden></div></article>`;
 }).join('');
 const openLogs=new Set();
 const renderLog=id=>{const s=A.segments.find(s=>s.id===id);const host=$('log-'+id);host.innerHTML=logHTML(s.from,s.to);};
