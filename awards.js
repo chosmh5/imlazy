@@ -44,7 +44,6 @@ $('awRooms').innerHTML=rooms.map((r,i)=>{
   const ms=spoken.filter(x=>x.room===i);const ps=new Set(ms.map(x=>x.p));
   return `<div class="aw-room" data-room="${i}"><strong>${esc(r.label)}</strong><span>${esc(r.role)}</span><span>${num(ps.size)}명 · ${num(M.filter(x=>x.room===i).length)}개 메시지</span></div>`;
 }).join('');
-$('awPrologue').innerHTML=A.prologue.map(t=>`<li>${esc(t)}</li>`).join('');
 
 // 시상 결과
 const winnersHTML=s=>s.winners.map(w=>`<span class="aw-win-row">${w.label?`<span class="aw-win-label">${esc(w.label)}</span>`:''}${w.people.map(p=>plink(p)).join('')}${w.note?`<span class="aw-win-note">${esc(w.note)}</span>`:''}</span>`).join('');
@@ -127,12 +126,19 @@ function logHTML(from,to){
   return `<div class="aw-log${dim}">${head}${rows||'<p class="empty">이 조건에 맞는 메시지가 없습니다.</p>'}</div><p class="aw-log-more">${hhmm(from)}–${hhmm(to)} · ${num(list.length)}개 메시지</p>`;
 }
 
+// 단상 요약: {t,text} 진행 · {who,text} 발언 · {tag,text} 결과
+const quotes=t=>esc(t).replace(/“([^”]*)”/g,'<q>$1</q>');
+const stageHTML=items=>`<ol class="aw-stage">${(Array.isArray(items)?items:[{text:items}]).map(it=>{
+  if(it.tag)return `<li class="st-tag"><span class="st-k">${esc(it.tag)}</span><span class="st-v">${quotes(it.text)}</span></li>`;
+  if(it.who)return `<li class="st-say"><span class="st-k">${esc(it.who)}</span><span class="st-v">${quotes(it.text)}</span></li>`;
+  return `<li class="st-note">${it.t?`<time class="st-k">${esc(it.t)}</time>`:'<span class="st-k" aria-hidden="true"></span>'}<span class="st-v">${quotes(it.text)}</span></li>`;
+}).join('')}</ol>`;
 // 구간
 const momentsBySeg=new Map();
 for(const mo of A.moments){const s=A.segments.find(s=>mo.t>=s.from&&mo.t<=s.to)||A.segments[0];if(!momentsBySeg.has(s.id))momentsBySeg.set(s.id,[]);momentsBySeg.get(s.id).push(mo);}
 $('awSegments').innerHTML=A.segments.map((s,i)=>{
   const cols=rooms.map((r,ri)=>{
-    if(ri===0)return `<div class="aw-col" data-room="0">${roomTag(0)}<p>${esc(s.stage)}</p></div>`;
+    if(ri===0)return `<div class="aw-col" data-room="0">${roomTag(0)}${stageHTML(s.stage)}</div>`;
     const notes=s.rooms[String(ri)]||[];
     return `<div class="aw-col${notes.length?'':' empty-col'}" data-room="${ri}">${roomTag(ri)}${notes.length?`<ul>${notes.map(n=>`<li>${esc(n)}</li>`).join('')}</ul>`:'<p>이 시간에 기록된 장면이 거의 없습니다.</p>'}</div>`;
   }).join('');
@@ -203,6 +209,5 @@ filterPeople();
 $('awLegend').innerHTML=rooms.map((r,i)=>roomTag(i)).join('');
 const measure=()=>{const nav=document.querySelector('.site-nav');const ctl=document.querySelector('.aw-controls-sticky');const st=document.documentElement.style;st.setProperty('--aw-nav',(nav?nav.offsetHeight:72)+'px');st.setProperty('--aw-ctl',(ctl&&getComputedStyle(ctl).position==='sticky'?ctl.offsetHeight:0)+'px');};
 measure();addEventListener('resize',measure);if(window.ResizeObserver){const ro=new ResizeObserver(measure);for(const el of document.querySelectorAll('.site-nav,.aw-controls-sticky'))ro.observe(el);}document.fonts?.ready?.then(measure);
-$('awNotes').innerHTML=A.notes.map(n=>`<li>${esc(n)}</li>`).join('');
 if(opt.focus>=0){const d=document.querySelector(`.aw-person[data-p="${opt.focus}"]`);if(d)d.open=true;}
 })();
